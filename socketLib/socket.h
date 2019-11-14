@@ -25,6 +25,10 @@ SourceFiles
 
 #ifndef Socket_H
 #define Socket_H
+
+#include <vector>
+#include <string>
+
 enum class SocketCodes
 {
     welcome_server,

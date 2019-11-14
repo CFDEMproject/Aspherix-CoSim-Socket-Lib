@@ -320,7 +320,7 @@ void Socket::error_all(const std::string msg)
 
 size_t Socket::readNumberFromFile(const std::string path)
 {
-    size_t number;
+    size_t number(0);
     std::string line;
     std::ifstream myfile (path);
     int ntries = 0;
@@ -329,10 +329,13 @@ size_t Socket::readNumberFromFile(const std::string path)
     {
         sleep(1);
         ntries++;
-        if (ntries > 10) error_one("Opening File Failed"); //std::cerr << "Opening File Failed" << std::endl; std::exit(1);
-        else std::cout << "Opening file attempt, path=" << path << " ntries=" << ntries <<"/10" << std::endl;
+        if (ntries > 10)
+            error_one("Opening File Failed"); //std::cerr << "Opening File Failed" << std::endl; std::exit(1);
+        else
+            std::cout << "Opening file attempt, path=" << path << " ntries=" << ntries <<"/10" << std::endl;
     }
-    while ( std::getline (myfile,line) ) number=std::stoi(line);
+    while ( std::getline (myfile,line) )
+        number=std::stoi(line);
     myfile.close();
 
     return number;
@@ -550,7 +553,7 @@ void Socket::sendPushPullProperties()
 
     // send push (from DEM to CFD) names and types
     //std::cout << "    send push (from DEM to CFD) names and types ..." << std::endl;
-    for (int i = 0; i < h; i++)
+    for (size_t i = 0; i < h; i++)
     {
         //std::cout << "      send pushNameList_[i].size()=" << pushNameList_[i].size() << std::endl;
         size_t name_len = pushNameList_[i].size();
@@ -585,7 +588,7 @@ void Socket::sendPushPullProperties()
 
     // send pull (from CFD to DEM) names and types
     //std::cout << "    send pull (from CFD to DEM) names and types ..." << std::endl;
-    for (int i = 0; i < h; i++)
+    for (size_t i = 0; i < h; i++)
     {
         size_t name_len = pullNameList_[i].size();
         write_socket(&name_len, sizeof(size_t));
@@ -611,7 +614,7 @@ void Socket::buildBytePattern()
 {
     pushBytesPerPropList_=std::vector<int>(pushTypeList_.size());
     pushCumOffsetPerProperty_=std::vector<int>(pushTypeList_.size());
-    for (int i = 0; i < pushTypeList_.size(); i++)
+    for (size_t i = 0; i < pushTypeList_.size(); i++)
     {
         if(pushTypeList_[i]=="scalar-atom")
         {
@@ -652,7 +655,7 @@ void Socket::buildBytePattern()
 
     pullBytesPerPropList_=std::vector<int>(pullTypeList_.size());
     pullCumOffsetPerProperty_=std::vector<int>(pullTypeList_.size());
-    for (int i = 0; i < pullTypeList_.size(); i++)
+    for (size_t i = 0; i < pullTypeList_.size(); i++)
     {
         if(pullTypeList_[i]=="scalar-atom")
         {
