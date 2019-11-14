@@ -12,7 +12,7 @@ Description
     Note: this code is not part of OpenFOAM(R) (see DISCLAIMER).
 
 Class
-    Socket
+    AsphericCoSimSocket
 
 SourceFiles
     aspherix_cosim_socket.cpp
@@ -43,10 +43,10 @@ enum class SocketCodes
 };
 
 /*---------------------------------------------------------------------------*\
-                           Class Socket Declaration
+                           Class AsphericCoSimSocket Declaration
 \*---------------------------------------------------------------------------*/
 
-class Socket
+class AsphericCoSimSocket
 {
 private:
     // private data
@@ -85,10 +85,10 @@ public:
     // Constructors
 
     //- Construct from components
-    Socket(bool mode, const size_t port_offset);
+    AsphericCoSimSocket(bool mode, const size_t port_offset);
 
     // Destructor
-    ~Socket();
+    ~AsphericCoSimSocket();
 
     // Member Functions
     void read_socket(void *const buf, const size_t size);

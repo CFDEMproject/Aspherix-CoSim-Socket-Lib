@@ -31,7 +31,7 @@
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 // Construct from components
-Socket::Socket
+AsphericCoSimSocket::AsphericCoSimSocket
 (
     bool mode,
     const size_t processNumber
@@ -296,7 +296,7 @@ Socket::Socket
 }
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
-Socket::~Socket()
+AsphericCoSimSocket::~AsphericCoSimSocket()
 {
     SocketCodes msg = SocketCodes::close_connection;
     write_socket(&msg, sizeof(SocketCodes));
@@ -305,20 +305,20 @@ Socket::~Socket()
 }
 
 // * * * * * * * * * * * * * * * private Member Functions  * * * * * * * * * * * * * //
-void Socket::error_one(const std::string msg)
+void AsphericCoSimSocket::error_one(const std::string msg)
 {
     //sleep(10); // sleep so client has a chance to shut down first
     closeSocket();
     throw std::runtime_error(msg);
 }
 
-void Socket::error_all(const std::string msg)
+void AsphericCoSimSocket::error_all(const std::string msg)
 {
     closeSocket();
     throw std::runtime_error(msg);
 }
 
-size_t Socket::readNumberFromFile(const std::string path)
+size_t AsphericCoSimSocket::readNumberFromFile(const std::string path)
 {
     size_t number(0);
     std::string line;
@@ -341,7 +341,7 @@ size_t Socket::readNumberFromFile(const std::string path)
     return number;
 }
 
-void Socket::deleteFile(const std::string path)
+void AsphericCoSimSocket::deleteFile(const std::string path)
 {
     if( remove( path.c_str() ) != 0 )
         std::cout << "Server: file" + path << " does not exist - nothing to do." << std::endl;
@@ -349,7 +349,7 @@ void Socket::deleteFile(const std::string path)
         puts( ("Server: File " + path + " successfully deleted.").c_str() );
 }
 
-void Socket::readPortFile(int proc, const std::string path,size_t& port,int& found,int n_tries_max)
+void AsphericCoSimSocket::readPortFile(int proc, const std::string path,size_t& port,int& found,int n_tries_max)
 {
     std::cout << "        trying to read file " << path << "..." << std::endl;
     int success=0;
@@ -378,7 +378,7 @@ void Socket::readPortFile(int proc, const std::string path,size_t& port,int& fou
     }
 }
 
-int Socket::tryConnect(struct sockaddr_in address)
+int AsphericCoSimSocket::tryConnect(struct sockaddr_in address)
 {
     //=====================
     // test connect in non-blocking mode
@@ -472,7 +472,7 @@ int Socket::tryConnect(struct sockaddr_in address)
     return res;
 }
 
-int Socket::selectTO(int& sockfd)
+int AsphericCoSimSocket::selectTO(int& sockfd)
 {
     // use select to test the connection with a timeout
     fd_set sock;
@@ -495,7 +495,7 @@ int Socket::selectTO(int& sockfd)
 }
 
 // * * * * * * * * * * * * * * * public Member Functions  * * * * * * * * * * * * * //
-void Socket::write_socket(void *const buf, const size_t size)
+void AsphericCoSimSocket::write_socket(void *const buf, const size_t size)
 {
     size_t send_size = 0;
     int cur_size(0);
@@ -510,16 +510,16 @@ void Socket::write_socket(void *const buf, const size_t size)
             if (errno == EAGAIN || errno == EWOULDBLOCK)
                 std::cout << "Waiting for sending data " << std::to_string(errno) << std::endl;
             else
-                error_one("\n\nERROR: Socket::write_socket: Failed sending data.\n");
+                error_one("\n\nERROR: AsphericCoSimSocket::write_socket: Failed sending data.\n");
         }
         else if (cur_size == 0)
-            error_one(std::string("\n\nERROR: Socket::write_socket: Disconnected. ")+std::to_string(cur_size));
+            error_one(std::string("\n\nERROR: AsphericCoSimSocket::write_socket: Disconnected. ")+std::to_string(cur_size));
 
         send_size += cur_size;
     }
 }
 
-void Socket::read_socket(void *const buf, const size_t size)
+void AsphericCoSimSocket::read_socket(void *const buf, const size_t size)
 {
     size_t recv_size = 0;
     int cur_size(0);
@@ -534,16 +534,16 @@ void Socket::read_socket(void *const buf, const size_t size)
             if (errno == EAGAIN || errno == EWOULDBLOCK)
                 std::cout << "Waiting for reading data " << std::to_string(errno) << std::endl;
             else
-                error_one(std::string("\n\nERROR: Socket::read_socket: Failed getting data. ")+std::to_string(cur_size));
+                error_one(std::string("\n\nERROR: AsphericCoSimSocket::read_socket: Failed getting data. ")+std::to_string(cur_size));
         }
         else if (cur_size == 0)
-            error_one(std::string("\n\nERROR: Socket::read_socket: Disconnected. ")+std::to_string(cur_size));
+            error_one(std::string("\n\nERROR: AsphericCoSimSocket::read_socket: Disconnected. ")+std::to_string(cur_size));
 
         recv_size += cur_size;
     }
 }
 
-void Socket::sendPushPullProperties()
+void AsphericCoSimSocket::sendPushPullProperties()
 {
     // send number of push (from DEM to CFD) properties
     //std::cout << "    send number of push (from DEM to CFD) properties ... pushNameList_.size()=" << pushNameList_.size() << std::endl;
@@ -610,7 +610,7 @@ void Socket::sendPushPullProperties()
     //std::cout << "    send pull (from CFD to DEM) names and types - done." << std::endl;
 }
 
-void Socket::buildBytePattern()
+void AsphericCoSimSocket::buildBytePattern()
 {
     pushBytesPerPropList_=std::vector<int>(pushTypeList_.size());
     pushCumOffsetPerProperty_=std::vector<int>(pushTypeList_.size());
@@ -641,7 +641,7 @@ void Socket::buildBytePattern()
             //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
         }
         else
-            error_one(std::string("\n\nERROR: Socket::buildBytePattern() (push): Type not recognized: ")+pushTypeList_[i]+std::string(".\n"));
+            error_one(std::string("\n\nERROR: AsphericCoSimSocket::buildBytePattern() (push): Type not recognized: ")+pushTypeList_[i]+std::string(".\n"));
 
         if(i>0)
             pushCumOffsetPerProperty_[i] = pushCumOffsetPerProperty_[i-1] + pushBytesPerPropList_[i-1];
@@ -678,7 +678,7 @@ void Socket::buildBytePattern()
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
         }
         else
-            error_one(std::string("\n\nERROR: Socket::buildBytePattern() (pull): Type not recognized: ")+pullTypeList_[i]+std::string(".\n"));
+            error_one(std::string("\n\nERROR: AsphericCoSimSocket::buildBytePattern() (pull): Type not recognized: ")+pullTypeList_[i]+std::string(".\n"));
 
         if(i>0)
             pullCumOffsetPerProperty_[i] = pullCumOffsetPerProperty_[i-1] + pullBytesPerPropList_[i-1];
@@ -688,7 +688,7 @@ void Socket::buildBytePattern()
     //std::cout << "sndBytesPerParticle_=" << sndBytesPerParticle_ << std::endl;
 }
 
-void Socket::exchangeStatus
+void AsphericCoSimSocket::exchangeStatus
 (
     SocketCodes statusSend,
     SocketCodes statusExpect
@@ -706,7 +706,7 @@ void Socket::exchangeStatus
         error_one(std::string("\n\nERROR: Socket::exchangeStatus: Expected different status flag.\n"));
 }
 
-void Socket::exchangeDomain
+void AsphericCoSimSocket::exchangeDomain
 (
     bool active,
     double* limits
@@ -731,7 +731,7 @@ void Socket::exchangeDomain
     }
 }
 
-void Socket::rcvData
+void AsphericCoSimSocket::rcvData
 (
     size_t& dataSize,
     char*& data
@@ -745,7 +745,7 @@ void Socket::rcvData
     read_socket(data, dataSize);
 }
 
-void Socket::sendData
+void AsphericCoSimSocket::sendData
 (
     size_t& dataSize,
     char*& data
@@ -758,7 +758,7 @@ void Socket::sendData
     write_socket(data, dataSize);
 }
 
-void Socket::closeSocket()
+void AsphericCoSimSocket::closeSocket()
 {
     if (insockfd_ > 0)
         ::close(insockfd_);
