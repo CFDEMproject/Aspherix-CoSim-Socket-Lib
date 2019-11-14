@@ -53,3 +53,4 @@ ENDIF(MPI_FOUND)
 #=============================================================
 install(TARGETS aspherix_cosim_socket DESTINATION lib)
 install(FILES aspherix_cosim_socket.h DESTINATION include/aspherix)
+install(FILES aspherix_cosim_socketConfig.cmake DESTINATION include/aspherix/cmake)

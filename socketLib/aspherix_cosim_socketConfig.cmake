@@ -1,0 +1,5 @@
+add_library(aspherix_cosim_socket STATIC IMPORTED)
+find_library(ASPHERIX_COSIM_SOCKET_LIBRARY_PATH aspherix_cosim_socket HINTS "${CMAKE_CURRENT_LIST_DIR}/../../../lib")
+find_path(ASPHERIX_COSIM_SOCKET_INCLUDE_PATH aspherix_cosim_socket.h HINTS "${CMAKE_CURRENT_LIST_DIR}/../")
+set_target_properties(aspherix_cosim_socket PROPERTIES IMPORTED_LOCATION "${ASPHERIX_COSIM_SOCKET_LIBRARY_PATH}")
+set_target_properties(aspherix_cosim_socket PROPERTIES INCLUDE_DIRECTORIES "${ASPHERIX_COSIM_SOCKET_INCLUDE_PATH}")
