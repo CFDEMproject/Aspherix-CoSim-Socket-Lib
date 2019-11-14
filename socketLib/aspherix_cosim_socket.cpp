@@ -9,7 +9,7 @@
 // this is not available on Windows
 #ifndef _WIN32
 
-#include "socket.h"
+#include "aspherix_cosim_socket.h"
 
 #include <unistd.h>
 #include <cstdio>

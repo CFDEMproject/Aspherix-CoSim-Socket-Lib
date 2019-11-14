@@ -12,10 +12,10 @@ Description
     Note: this code is not part of OpenFOAM(R) (see DISCLAIMER).
 
 Class
-    socket
+    Socket
 
 SourceFiles
-    socket.cpp
+    aspherix_cosim_socket.cpp
 \*---------------------------------------------------------------------------*/
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -23,8 +23,8 @@ SourceFiles
 // this is not available on Windows
 #ifndef _WIN32
 
-#ifndef Socket_H
-#define Socket_H
+#ifndef ASPHERIX_COSIM_SOCKET_H
+#define ASPHERIX_COSIM_SOCKET_H
 
 #include <vector>
 #include <string>
