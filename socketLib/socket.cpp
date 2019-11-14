@@ -1,35 +1,15 @@
 /*---------------------------------------------------------------------------*\
-    CFDEMcoupling - Open Source CFD-DEM coupling
+    Aspherix-CoSimulation-Socket-Library
 
-    CFDEMcoupling is part of the CFDEMproject
-    www.cfdem.com
-                                Christoph Goniva, christoph.goniva@cfdem.com
-                                Copyright 2012-     DCS Computing GmbH, Linz
--------------------------------------------------------------------------------
-License
-    This file is part of CFDEMcoupling.
+    (C) 2019 DCS Computing GmbH, Linz, Austria
 
-    CFDEMcoupling is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by the
-    Free Software Foundation; either version 3 of the License, or (at your
-    option) any later version.
-
-    CFDEMcoupling is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-    for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with CFDEMcoupling; if not, write to the Free Software Foundation,
-    Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-
-Description
-    This code provides a protocol for CoSimulation data transfer.
-    Note: this code is not part of OpenFOAM(R) (see DISCLAIMER).
+    This software is released under the GNU LGPL v3.
 \*---------------------------------------------------------------------------*/
 
 // this is not available on Windows
 #ifndef _WIN32
+
+#include "socket.h"
 
 #include <unistd.h>
 #include <cstdio>
@@ -44,7 +24,6 @@ Description
 #include <numeric>
 #include <fstream>
 #include <mpi.h>
-#include "socket.h"
 
 #define PORT 49152
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -79,8 +58,10 @@ Socket::Socket
     // create socket with DEM process
     if(processNumber==0)
     {
-        if(server_) std::cout << "\nCreate socket with CFD process ..." << std::endl;
-        else std::cout << "\nCreate socket with DEM process ..." << std::endl;        
+        if(server_)
+            std::cout << "\nCreate socket with CFD process ..." << std::endl;
+        else
+            std::cout << "\nCreate socket with DEM process ..." << std::endl;
     }
 
     //==================================================
@@ -92,10 +73,10 @@ Socket::Socket
     // Problem: here we assume CFD and DEM live in their own directories and
     // both directories have the same mother directory
     // TODO: find a better solution (e.g. absolute file path and unique filename?)
-	size_t size;
+    size_t size;
     char *path=NULL;
-	path=getcwd(path,size);
-	std::string cwd=path;
+    path=getcwd(path,size);
+    std::string cwd=path;
     std::string portFilePath(cwd+"/../DEM/portOffset_"+std::to_string(processNumber)+".txt");
 
     if(server_)
@@ -136,7 +117,7 @@ Socket::Socket
     lin.l_onoff = 0;
     lin.l_linger = 0;
     setsockopt(sockfd_, SOL_SOCKET, SO_LINGER, (const char *)&lin, sizeof(int));
-    
+
     struct sockaddr_in address;
     memset(&address, 0, sizeof(sockaddr_in));
     address.sin_family = AF_INET;
@@ -154,7 +135,7 @@ Socket::Socket
             success=0;
             n_tries++;
 
-            std::cout << "Server: process number " << processNumber << " trying to bind/listen with PORT(49152+portOffset+procNr)=" 
+            std::cout << "Server: process number " << processNumber << " trying to bind/listen with PORT(49152+portOffset+procNr)="
                       << std::to_string(PORT+processNumber+portOffset) << std::endl;
 
             // try attaching socket to the port
@@ -165,8 +146,8 @@ Socket::Socket
 
                 if(n_tries > n_tries_max)
                 {
-                    std::cout << "Server:  " << processNumber 
-                              << " Bind to " << std::to_string(PORT+processNumber+portOffset) 
+                    std::cout << "Server:  " << processNumber
+                              << " Bind to " << std::to_string(PORT+processNumber+portOffset)
                               << " failed (probably the port is not (yet?) available?)" << std::endl;
                     break; // tried enough
                 }
@@ -184,7 +165,7 @@ Socket::Socket
         MPI_Barrier(MPI_COMM_WORLD);
         if(processNumber==0) std::cout << "\nServer: All processes bound successfully\n" << std::endl;
 
-        // if bind was successful, continue with listen              
+        // if bind was successful, continue with listen
         if (listen(sockfd_, 5) < 0)
         {
             std::cout << "  process number " << processNumber << " Listen to "
@@ -228,7 +209,7 @@ Socket::Socket
                                            << "   Probably there was no user defined portOffset file and DEM was not able to find suitable ports.\n"
                                            << "*  Find details in the documentation (look for 'Setup a case using socket communication').\n" << std::endl;
             error_one("FatalError: portOffset file not found.");
-        } 
+        }
     }
 
     // server accept socket / client connect to socket
@@ -252,7 +233,7 @@ Socket::Socket
     else // client implementation
     {
         std::cout << "Client: process number " << processNumber << " trying to connect with PORT(49152+portOffset+procNr)="
-                  << std::to_string(PORT+processNumber+portOffset) << std::endl; 
+                  << std::to_string(PORT+processNumber+portOffset) << std::endl;
         address.sin_port = htons(PORT+processNumber+portOffset);
 
         // trying connecton first
@@ -268,7 +249,7 @@ Socket::Socket
             ntries++;
             if (ntries > 5)
             {
-                std::cout << "Client: " << processNumber << " Connecting to socket port " 
+                std::cout << "Client: " << processNumber << " Connecting to socket port "
                           << std::to_string(PORT+processNumber+portOffset) << " failed. " << std::endl;
                 std::cout << "\nERROR: CFD could not connect to port.\n"
                           << "Probably the DEM run could not bind/connect to the port.\n"
@@ -291,7 +272,7 @@ Socket::Socket
     // test connection
     //std::cout << "Server: process number " << processNumber << " testing connection (read/write)..." << std::endl;
     SocketCodes test_connection_out = SocketCodes::welcome_client;
-    if(server_) test_connection_out = SocketCodes::welcome_server;       
+    if(server_) test_connection_out = SocketCodes::welcome_server;
     SocketCodes test_connection_in = SocketCodes::invalid;
     write_socket(&test_connection_out, sizeof(SocketCodes));
     read_socket(&test_connection_in, sizeof(SocketCodes));
@@ -348,7 +329,7 @@ size_t Socket::readNumberFromFile(const std::string path)
     {
         sleep(1);
         ntries++;
-        if (ntries > 10) error_one("Opening File Failed"); //std::cerr << "Opening File Failed" << std::endl; std::exit(1);                    
+        if (ntries > 10) error_one("Opening File Failed"); //std::cerr << "Opening File Failed" << std::endl; std::exit(1);
         else std::cout << "Opening file attempt, path=" << path << " ntries=" << ntries <<"/10" << std::endl;
     }
     while ( std::getline (myfile,line) ) number=std::stoi(line);
@@ -396,81 +377,94 @@ void Socket::readPortFile(int proc, const std::string path,size_t& port,int& fou
 
 int Socket::tryConnect(struct sockaddr_in address)
 {
-      //=====================
-      // test connect in non-blocking mode
-      // connect with timeout (currently connected)
-      // PROBLEM: program hangs if connect fails - so we want to "test" connect with a timeout
-      // THIS CODE SNIPPET COMPILES BUT DOES NOT WORK AS DESIRED
-      int res; 
-      long arg; 
-      //fd_set myset; 
-      //struct timeval tv; 
-      //int valopt; 
-      //socklen_t lon; 
+    //=====================
+    // test connect in non-blocking mode
+    // connect with timeout (currently connected)
+    // PROBLEM: program hangs if connect fails - so we want to "test" connect with a timeout
+    // THIS CODE SNIPPET COMPILES BUT DOES NOT WORK AS DESIRED
+    int res;
+    long arg;
+    //fd_set myset;
+    //struct timeval tv;
+    //int valopt;
+    //socklen_t lon;
 
-      // Set non-blocking 
-      if( (arg = fcntl(sockfd_, F_GETFL, NULL)) < 0) { 
-         fprintf(stderr, "Error fcntl(..., F_GETFL) (%s)\n", strerror(errno)); 
-         exit(0); 
-      }
-      arg |= O_NONBLOCK; 
-      if( fcntl(sockfd_, F_SETFL, arg) < 0) { 
-         fprintf(stderr, "Error fcntl(..., F_SETFL) (%s)\n", strerror(errno)); 
-         exit(0); 
-      }
-      // Trying to connect with timeout 
-      res = connect(sockfd_, (struct sockaddr *)&address, sizeof(address)); 
-      if (res < 0) { 
-         if (errno == EINPROGRESS) { 
+    // Set non-blocking
+    if( (arg = fcntl(sockfd_, F_GETFL, NULL)) < 0)
+    {
+        fprintf(stderr, "Error fcntl(..., F_GETFL) (%s)\n", strerror(errno));
+        exit(0);
+    }
+    arg |= O_NONBLOCK;
+    if( fcntl(sockfd_, F_SETFL, arg) < 0)
+    {
+        fprintf(stderr, "Error fcntl(..., F_SETFL) (%s)\n", strerror(errno));
+        exit(0);
+    }
+    // Trying to connect with timeout
+    res = connect(sockfd_, (struct sockaddr *)&address, sizeof(address));
+    if (res < 0)
+    {
+        if (errno == EINPROGRESS)
+        {
             fprintf(stderr, "EINPROGRESS in connect()\n");
 
             /*// further tesing with timeout
-            do { 
-               tv.tv_sec = 1; 
-               tv.tv_usec = 0; 
-               FD_ZERO(&myset); 
-               FD_SET(sockfd_, &myset); 
-               res = select(sockfd_+1, NULL, &myset, NULL, &tv); 
-               if (res < 0 && errno != EINTR) { 
-                  fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno)); 
-                  exit(0); 
-               } 
-               else if (res > 0) { 
-                  // Socket selected for write 
-                  lon = sizeof(int); 
-                  if (getsockopt(sockfd_, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0) { 
-                     fprintf(stderr, "Error in getsockopt() %d - %s\n", errno, strerror(errno)); 
-                     exit(0); 
-                  } 
-                  // Check the value returned... 
-                  if (valopt) { 
-                     fprintf(stderr, "Error in delayed connection() %d - %s\n", valopt, strerror(valopt)); 
-                     exit(0); 
-                  }
-                  break;                 
-               } 
-               else { 
-                  fprintf(stderr, "Timeout in select() - Cancelling!\n"); 
-                  exit(0); 
-               } 
+            do
+            {
+                tv.tv_sec = 1;
+                tv.tv_usec = 0;
+                FD_ZERO(&myset);
+                FD_SET(sockfd_, &myset);
+                res = select(sockfd_+1, NULL, &myset, NULL, &tv);
+                if (res < 0 && errno != EINTR)
+                {
+                    fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno));
+                    exit(0);
+                }
+                else if (res > 0)
+                {
+                    // Socket selected for write
+                    lon = sizeof(int);
+                    if (getsockopt(sockfd_, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0)
+                    {
+                        fprintf(stderr, "Error in getsockopt() %d - %s\n", errno, strerror(errno));
+                        exit(0);
+                    }
+                    // Check the value returned...
+                    if (valopt)
+                    {
+                        fprintf(stderr, "Error in delayed connection() %d - %s\n", valopt, strerror(valopt));
+                        exit(0);
+                    }
+                    break;
+                }
+                else
+                {
+                    fprintf(stderr, "Timeout in select() - Cancelling!\n");
+                    exit(0);
+                }
             } while (1);*/
-         } 
-         else { 
-            fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno)); 
-            exit(0); 
-         } 
-      }
+        }
+        else
+        {
+            fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno));
+            exit(0);
+        }
+    }
 
-      // Set to blocking mode again... 
-      if( (arg = fcntl(sockfd_, F_GETFL, NULL)) < 0) { 
-         fprintf(stderr, "Error fcntl(..., F_GETFL) (%s)\n", strerror(errno)); 
-         exit(0); 
-      } 
-      arg &= (~O_NONBLOCK); 
-      if( fcntl(sockfd_, F_SETFL, arg) < 0) { 
-         fprintf(stderr, "Error fcntl(..., F_SETFL) (%s)\n", strerror(errno)); 
-         exit(0); 
-      }
+    // Set to blocking mode again...
+    if( (arg = fcntl(sockfd_, F_GETFL, NULL)) < 0)
+    {
+        fprintf(stderr, "Error fcntl(..., F_GETFL) (%s)\n", strerror(errno));
+        exit(0);
+    }
+    arg &= (~O_NONBLOCK);
+    if( fcntl(sockfd_, F_SETFL, arg) < 0)
+    {
+        fprintf(stderr, "Error fcntl(..., F_SETFL) (%s)\n", strerror(errno));
+        exit(0);
+    }
 
     return res;
 }
@@ -480,11 +474,11 @@ int Socket::selectTO(int& sockfd)
     // use select to test the connection with a timeout
     fd_set sock;
     struct timeval tv;
-    tv.tv_sec = 2; 
-    tv.tv_usec = 0; 
+    tv.tv_sec = 2;
+    tv.tv_usec = 0;
 
-    FD_ZERO(&sock); 
-    FD_SET(sockfd,&sock); 
+    FD_ZERO(&sock);
+    FD_SET(sockfd,&sock);
 
     int retval = select(sockfd+1, &sock, NULL, NULL, &tv);
 
@@ -619,27 +613,37 @@ void Socket::buildBytePattern()
     pushCumOffsetPerProperty_=std::vector<int>(pushTypeList_.size());
     for (int i = 0; i < pushTypeList_.size(); i++)
     {
-        if(pushTypeList_[i]=="scalar-atom"){
+        if(pushTypeList_[i]=="scalar-atom")
+        {
             pushBytesPerPropList_[i]=nbytesScalar_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
             //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
-        }else if(pushTypeList_[i]=="vector-atom"){
+        }
+        else if(pushTypeList_[i]=="vector-atom")
+        {
             pushBytesPerPropList_[i]=nbytesVector_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
             //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
-        }else if(pushTypeList_[i]=="scalar-multisphere"){
+        }
+        else if(pushTypeList_[i]=="scalar-multisphere")
+        {
             pushBytesPerPropList_[i]=nbytesScalar_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
             //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
-        }else if(pushTypeList_[i]=="vector-multisphere"){
+        }
+        else if(pushTypeList_[i]=="vector-multisphere")
+        {
             pushBytesPerPropList_[i]=nbytesVector_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
             //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
-        }else
+        }
+        else
             error_one(std::string("\n\nERROR: Socket::buildBytePattern() (push): Type not recognized: ")+pushTypeList_[i]+std::string(".\n"));
 
-        if(i>0) pushCumOffsetPerProperty_[i] = pushCumOffsetPerProperty_[i-1] + pushBytesPerPropList_[i-1];
-        else pushCumOffsetPerProperty_[i] = 0;
+        if(i>0)
+            pushCumOffsetPerProperty_[i] = pushCumOffsetPerProperty_[i-1] + pushBytesPerPropList_[i-1];
+        else
+            pushCumOffsetPerProperty_[i] = 0;
     }
     //std::cout << "rcvBytesPerParticle_=" << rcvBytesPerParticle_ << std::endl;
 
@@ -650,23 +654,33 @@ void Socket::buildBytePattern()
     pullCumOffsetPerProperty_=std::vector<int>(pullTypeList_.size());
     for (int i = 0; i < pullTypeList_.size(); i++)
     {
-        if(pullTypeList_[i]=="scalar-atom"){
+        if(pullTypeList_[i]=="scalar-atom")
+        {
             pullBytesPerPropList_[i]=nbytesScalar_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
-        }else if(pullTypeList_[i]=="vector-atom"){
+        }
+        else if(pullTypeList_[i]=="vector-atom")
+        {
             pullBytesPerPropList_[i]=nbytesVector_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
-        }else if(pullTypeList_[i]=="scalar-multisphere"){
+        }
+        else if(pullTypeList_[i]=="scalar-multisphere")
+        {
             pullBytesPerPropList_[i]=nbytesScalar_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
-        }else if(pullTypeList_[i]=="vector-multisphere"){
+        }
+        else if(pullTypeList_[i]=="vector-multisphere")
+        {
             pullBytesPerPropList_[i]=nbytesVector_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
-        }else
+        }
+        else
             error_one(std::string("\n\nERROR: Socket::buildBytePattern() (pull): Type not recognized: ")+pullTypeList_[i]+std::string(".\n"));
 
-        if(i>0) pullCumOffsetPerProperty_[i] = pullCumOffsetPerProperty_[i-1] + pullBytesPerPropList_[i-1];
-        else pullCumOffsetPerProperty_[i] = 0;
+        if(i>0)
+            pullCumOffsetPerProperty_[i] = pullCumOffsetPerProperty_[i-1] + pullBytesPerPropList_[i-1];
+        else
+            pullCumOffsetPerProperty_[i] = 0;
     }
     //std::cout << "sndBytesPerParticle_=" << sndBytesPerParticle_ << std::endl;
 }

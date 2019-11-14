@@ -1,27 +1,11 @@
 /*---------------------------------------------------------------------------*\
-    CFDEMcoupling - Open Source CFD-DEM coupling
+    Aspherix-CoSimulation-Socket-Library
 
-    CFDEMcoupling is part of the CFDEMproject
-    www.cfdem.com
-                                Christoph Goniva, christoph.goniva@cfdem.com
-                                Copyright 2012-     DCS Computing GmbH, Linz
--------------------------------------------------------------------------------
-License
-    This file is part of CFDEMcoupling.
+    (C) 2019 DCS Computing GmbH, Linz, Austria
 
-    CFDEMcoupling is free software; you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by the
-    Free Software Foundation; either version 3 of the License, or (at your
-    option) any later version.
+    This software is released under the GNU LGPL v3.
 
-    CFDEMcoupling is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-    for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with CFDEMcoupling; if not, write to the Free Software Foundation,
-    Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+|*---------------------------------------------------------------------------*|
 
 Description
     This code provides a protocol for CoSimulation data transfer.
@@ -32,7 +16,6 @@ Class
 
 SourceFiles
     socket.cpp
-
 \*---------------------------------------------------------------------------*/
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -55,7 +38,6 @@ enum class SocketCodes
     request_quit
 };
 
-
 /*---------------------------------------------------------------------------*\
                            Class Socket Declaration
 \*---------------------------------------------------------------------------*/
@@ -63,7 +45,7 @@ enum class SocketCodes
 class Socket
 {
 private:
-  // private data
+    // private data
     int sockfd_;
     int insockfd_;
     bool server_;
@@ -86,7 +68,7 @@ private:
 
     int portRangeReserved_;
 
-  // private member functions
+    // private member functions
     void error_one(const std::string msg);
     void error_all(const std::string msg);
     size_t readNumberFromFile(const std::string path);
@@ -94,15 +76,15 @@ private:
     void readPortFile(int proc, const std::string path,size_t& port,int& found,int n_tries_max=1);
     int tryConnect(struct sockaddr_in);
     int selectTO(int& sock);
+
 public:
     // Constructors
 
-        //- Construct from components
-        Socket(bool mode, const size_t port_offset);
+    //- Construct from components
+    Socket(bool mode, const size_t port_offset);
 
     // Destructor
-        ~Socket();
-
+    ~Socket();
 
     // Member Functions
     void read_socket(void *const buf, const size_t size);
