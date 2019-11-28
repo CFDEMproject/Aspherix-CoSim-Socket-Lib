@@ -4,10 +4,15 @@ cmake_minimum_required(VERSION 3.1)
 
 set(SOURCE aspherix_cosim_socket.h aspherix_cosim_socket.cpp)
 
-add_library(aspherix_cosim_socket SHARED ${SOURCE})
+OPTION(STATIC_LIBRARY "Compile as static library" OFF)
 
-set(STATIC_LIBSTDCPP OFF
-  CACHE STRING "enable static linking of libstdc++ and libgcc")
+if (STATIC_LIBRARY)
+    add_library(aspherix_cosim_socket STATIC ${SOURCE})
+else()
+    add_library(aspherix_cosim_socket SHARED ${SOURCE})
+endif()
+
+OPTION(STATIC_LIBSTDCPP "Build with statically linked C++ standard library" OFF)
 
 set(CMAKE_CXX_FLAGS "-Wall -std=c++11")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -50,7 +55,10 @@ IF(MPI_FOUND)
 ELSE(MPI_FOUND)
   MESSAGE(SEND_ERROR "MPI not found. Will continue processing cmake, but not build library.")
 ENDIF(MPI_FOUND)
+
 #=============================================================
+
 install(TARGETS aspherix_cosim_socket DESTINATION lib)
-install(FILES aspherix_cosim_socket.h DESTINATION include/aspherix)
-install(FILES aspherix_cosim_socketConfig.cmake DESTINATION include/aspherix/cmake)
+install(FILES ${SOURCE} DESTINATION include/aspherix_cosim_socket)
+install(FILES aspherix_cosim_socketConfig.cmake DESTINATION share/aspherix_cosim_socket)
+install(FILES license.txt DESTINATION share/aspherix_cosim_socket)
