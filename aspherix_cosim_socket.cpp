@@ -3,7 +3,7 @@
 
     (C) 2019 DCS Computing GmbH, Linz, Austria
 
-    This software is released under the GNU LGPL v3.
+    This software is released under the GNU GPL v3.
 \*---------------------------------------------------------------------------*/
 
 // this is not available on Windows
