@@ -54,8 +54,11 @@ private:
     int insockfd_;
     bool server_;
 
+    int nbytesInt_;
     int nbytesScalar_;
     int nbytesVector_;
+    int nbytesVector2D_;
+    int nbytesQuaternion_;
 
     int rcvBytesPerParticle_;
     int sndBytesPerParticle_;

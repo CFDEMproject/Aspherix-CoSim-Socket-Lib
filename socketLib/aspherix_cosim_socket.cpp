@@ -40,8 +40,11 @@ AspherixCoSimSocket::AspherixCoSimSocket
     sockfd_(0),
     insockfd_(0),
     server_(mode),
+    nbytesInt_(4),
     nbytesScalar_(8),
     nbytesVector_(3*nbytesScalar_),
+    nbytesVector2D_(2*nbytesScalar_),
+    nbytesQuaternion_(4*nbytesScalar_),
     rcvBytesPerParticle_(0),
     sndBytesPerParticle_(0),
     pushBytesPerPropList_(0),
@@ -215,11 +218,13 @@ AspherixCoSimSocket::AspherixCoSimSocket
     // server accept socket / client connect to socket
     if(server_)
     {
-        std::cout << "Server: process number " << processNumber << " Try Accept..." << std::endl;
         sleep(3);
-        // test the socket with t/o before accept
-        //int result = selectTO(sockfd_);
 
+        // test the socket with t/o before accept
+        int result = selectTO(sockfd_);
+
+        // try accept
+        std::cout << "Server: process number " << processNumber << " Try Accept..." << std::endl;
         socklen_t addrlen = sizeof(address);
         insockfd_ = accept(sockfd_, (struct sockaddr *)&address, &addrlen); // waits for client to connect!!!
         //send(insockfd_, "1", 1, 0);
@@ -477,7 +482,7 @@ int AspherixCoSimSocket::selectTO(int& sockfd)
     // use select to test the connection with a timeout
     fd_set sock;
     struct timeval tv;
-    tv.tv_sec = 2;
+    tv.tv_sec = 100;
     tv.tv_usec = 0;
 
     FD_ZERO(&sock);
@@ -490,7 +495,8 @@ int AspherixCoSimSocket::selectTO(int& sockfd)
     MPI_Allreduce(&retval, &all_retval, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
     retval = all_retval;
 
-    if (retval <= 0) error_one("Error: select failed.");
+    if (retval <= 0) error_one("Error: select() failed after timeout.");
+    else std::cout << "Server: select() successful." << std::endl;
     return retval;
 }
 
@@ -618,7 +624,10 @@ void AspherixCoSimSocket::buildBytePattern()
     {
         if(pushTypeList_[i]=="scalar-atom")
         {
-            pushBytesPerPropList_[i]=nbytesScalar_;
+            if(pushNameList_[i]=="body" || pushNameList_[i]=="id" || pushNameList_[i]=="type" || pushNameList_[i]=="shapetype")
+                pushBytesPerPropList_[i]=nbytesInt_;
+            else
+                pushBytesPerPropList_[i]=nbytesScalar_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
             //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
         }
@@ -630,7 +639,10 @@ void AspherixCoSimSocket::buildBytePattern()
         }
         else if(pushTypeList_[i]=="scalar-multisphere")
         {
-            pushBytesPerPropList_[i]=nbytesScalar_;
+            if(pushNameList_[i]=="nrigid" || pushNameList_[i]=="clumptype" || pushNameList_[i]=="id_multisphere")
+                pushBytesPerPropList_[i]=nbytesInt_;
+            else
+                pushBytesPerPropList_[i]=nbytesScalar_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
             //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
         }
@@ -638,6 +650,18 @@ void AspherixCoSimSocket::buildBytePattern()
         {
             pushBytesPerPropList_[i]=nbytesVector_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
+            std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if (pushTypeList_[i] == "vector2D-atom")
+        {
+            pushBytesPerPropList_[i] = nbytesVector2D_;
+            rcvBytesPerParticle_ += pushBytesPerPropList_[i];
+            //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if (pushTypeList_[i] == "quaternion-atom")
+        {
+            pushBytesPerPropList_[i] = nbytesQuaternion_;
+            rcvBytesPerParticle_ += pushBytesPerPropList_[i];
             //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
         }
         else
@@ -661,21 +685,37 @@ void AspherixCoSimSocket::buildBytePattern()
         {
             pullBytesPerPropList_[i]=nbytesScalar_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
         }
         else if(pullTypeList_[i]=="vector-atom")
         {
             pullBytesPerPropList_[i]=nbytesVector_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
         }
         else if(pullTypeList_[i]=="scalar-multisphere")
         {
             pullBytesPerPropList_[i]=nbytesScalar_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
         }
         else if(pullTypeList_[i]=="vector-multisphere")
         {
             pullBytesPerPropList_[i]=nbytesVector_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if(pullTypeList_[i] == "vector2D-atom")
+        {
+            pullBytesPerPropList_[i] = nbytesVector2D_;
+            sndBytesPerParticle_ += pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if(pullTypeList_[i] == "quaternion-atom")
+        {
+            pullBytesPerPropList_[i] = nbytesQuaternion_;
+            sndBytesPerParticle_ += pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
         }
         else
             error_one(std::string("\n\nERROR: AspherixCoSimSocket::buildBytePattern() (pull): Type not recognized: ")+pullTypeList_[i]+std::string(".\n"));
