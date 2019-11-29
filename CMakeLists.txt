@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.1)
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# setting this so that there are no issues with open foam
+set(MPI_CXX_SKIP_MPICXX TRUE)
 
 set(SOURCE aspherix_cosim_socket.h aspherix_cosim_socket.cpp)
 
