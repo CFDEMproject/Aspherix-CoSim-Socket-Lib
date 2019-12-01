@@ -9,6 +9,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 OPTION(SKIP_MPICXX "Skip mpicxx (recommended for OpenFOAM/Coupling compilations)" ON)
 if (SKIP_MPICXX)
     set(MPI_CXX_SKIP_MPICXX TRUE)
+endif()
 
 set(SOURCE aspherix_cosim_socket.h aspherix_cosim_socket.cpp)
 
