@@ -84,11 +84,13 @@ private:
     int tryConnect(struct sockaddr_in);
     int selectTO(int& sock);
 
+    int waitSeconds_;
+
 public:
     // Constructors
 
     //- Construct from components
-    AspherixCoSimSocket(bool mode, const size_t port_offset);
+    AspherixCoSimSocket(bool mode, const size_t port_offset, std::string customPortFilePath="", int waitSeconds=1);
 
     // Destructor
     ~AspherixCoSimSocket();

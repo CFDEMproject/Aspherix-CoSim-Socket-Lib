@@ -34,7 +34,9 @@
 AspherixCoSimSocket::AspherixCoSimSocket
 (
     bool mode,
-    const size_t processNumber
+    const size_t processNumber,
+    std::string customPortFilePath,
+    int waitSeconds
 )
 :
     sockfd_(0),
@@ -55,7 +57,8 @@ AspherixCoSimSocket::AspherixCoSimSocket
     pushTypeList_(0),
     pullNameList_(0),
     pullTypeList_(0),
-    portRangeReserved_(1)
+    portRangeReserved_(1),
+    waitSeconds_(1)
 {
 
     // create socket with DEM process
@@ -66,7 +69,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         else
             std::cout << "\nCreate socket with DEM process ..." << std::endl;
     }
-
+    waitSeconds_ = waitSeconds;
     //==================================================
     // CHECK IF PORT FILE EXISTS AND READ IF IT DOES
     size_t portOffset(0);
@@ -80,7 +83,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
     char *path=NULL;
     path=getcwd(path,size);
     std::string cwd=path;
-    std::string portFilePath(cwd+"/../DEM/portOffset_"+std::to_string(processNumber)+".txt");
+    std::string portFilePath(cwd+"/"+customPortFilePath+"/portOffset_"+std::to_string(processNumber)+".txt");
 
     if(server_)
     {
@@ -248,11 +251,12 @@ AspherixCoSimSocket::AspherixCoSimSocket
         //int result = selectTO(sockfd_);
 
         int ntries = 0;
+        int ntry_max = 5;
         while (connect(sockfd_, (struct sockaddr *)&address, sizeof(address)) < 0)
         {
-            sleep(1);
+            sleep(waitSeconds_);
             ntries++;
-            if (ntries > 5)
+            if (ntries > ntry_max)
             {
                 std::cout << "Client: " << processNumber << " Connecting to socket port "
                           << std::to_string(PORT+processNumber+portOffset) << " failed. " << std::endl;
@@ -261,10 +265,10 @@ AspherixCoSimSocket::AspherixCoSimSocket
                           << "*  Please make sure DEM was started as a separate run. Find details in the documentation (look for 'Setup a case using socket communication').\n"
                           << "** Please make sure the DEM input script has a fix couple/cfd.\n"
                           << "*** If DEM was started separately & a fix couple/cfd is used, probably the port it tried to use is not available. "
-                          << "Please check the DEM logfile and try a different port (specified in DEM/portOffset.txt).\n" << std::endl;
+                          << "Please check the DEM logfile and try a different port (specified in portOffset.txt).\n" << std::endl;
                 error_one("Connection Failed"); //std::cerr << "Connection Failed" << std::endl; std::exit(1);
             }
-            else std::cout << "Client: " << processNumber << " Connection attempt " << ntries <<"/10" << std::endl;
+            else std::cout << "Client: " << processNumber << " Connection attempt " << ntries <<"/" << ntry_max << std::endl;
         }
         //char buf[1];
         //recv(sockfd_, buf, 1, MSG_WAITFORONE);
@@ -378,7 +382,7 @@ void AspherixCoSimSocket::readPortFile(int proc, const std::string path,size_t& 
         {
             if(n_tries >= n_tries_max) break; // tried enough
             std::cout << "        portOffset of this simulation could not be read attempt " << n_tries <<"/" << n_tries_max << std::endl;
-            sleep(1);
+            sleep(waitSeconds_);
         }
     }
 }
