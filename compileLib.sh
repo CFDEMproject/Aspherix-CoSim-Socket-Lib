@@ -14,6 +14,7 @@ mkdir build
 mkdir install
 pushd build
 cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install -DSTATIC_LIBSTDCPP=ON -DSTATIC_LIBRARY=ON ..
+make clean
 make
 make install
 popd
