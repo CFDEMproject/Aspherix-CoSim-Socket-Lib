@@ -80,10 +80,11 @@ AspherixCoSimSocket::AspherixCoSimSocket
     // both directories have the same mother directory
     // TODO: find a better solution (e.g. absolute file path and unique filename?)
     size_t size;
-    char *path=NULL;
-    path=getcwd(path,size);
-    std::string cwd=path;
-    std::string portFilePath(cwd+"/"+customPortFilePath+"/portOffset_"+std::to_string(processNumber)+".txt");
+    char *path = NULL;
+    path = getcwd(path,size);
+    std::string cwd = path;
+    std::string portFilePath(cwd + "/" + customPortFilePath +
+            "/portOffset_" + std::to_string(processNumber) + ".txt");
 
     if(server_)
     {
@@ -134,8 +135,10 @@ AspherixCoSimSocket::AspherixCoSimSocket
     {
         int n_tries(0);
         int n_tries_max(std::min(100,16000/portRangeReserved_)); // go max from port 49152 to ~65535
-        if(foundPortFile==1) n_tries_max=0;
-        while(success==0)
+        if (foundPortFile == 1)
+            n_tries_max = 0;
+
+        while(success == 0)
         {
             address.sin_port = htons(PORT+processNumber+portOffset);
             success=0;
@@ -187,13 +190,14 @@ AspherixCoSimSocket::AspherixCoSimSocket
     }
 
     // communicate suitable port with client via file
-    if(server_) // server reads port from file if exists or writes suitable port to file
+    if (server_) // server reads port from file if exists or writes suitable port to file
     {
         // only for auto port detection
-        if(foundPortFile==0)
+        if (foundPortFile == 0)
         //if(success==1)
         {
-            std::cout << "Server: write portOffset=" << portOffset << " to a file... " << std::endl;
+            std::cout << "Server: write portOffset=" << portOffset
+                      << " to a file... " << std::endl;
             std::ofstream myfile2;
             myfile2.open (portFilePath);
             if (myfile2.is_open())
@@ -201,25 +205,52 @@ AspherixCoSimSocket::AspherixCoSimSocket
                 myfile2 << std::to_string(portOffset) << "\n";
                 myfile2.close();
             }
-            else error_one("Server: Unable to open file");
+            else
+                error_one("Server: Unable to open file");
         }//else error_one("ERROR");
     }
     else // client/server reads suitable port from file
     {
         // check if portfile exists and read it
-        readPortFile(processNumber,portFilePath,portOffset,foundPortFile,10);
+        readPortFile(processNumber, portFilePath,
+                     portOffset, foundPortFile, 10);
 
-        if(!foundPortFile)
+        if (!foundPortFile)
         {
-            if(processNumber==0) std::cout << "\nERROR: CFD could not find portOffset file.\n"
-                                           << "   Probably there was no user defined portOffset file and DEM was not able to find suitable ports.\n"
-                                           << "*  Find details in the documentation (look for 'Setup a case using socket communication').\n" << std::endl;
-            error_one("FatalError: portOffset file not found.");
+            // check on local dir if portfile exists and read it
+
+            std::string portFilePathOld(portFilePath);
+
+            portFilePath = cwd + "/portOffset_"
+                            + std::to_string(processNumber) + ".txt";
+
+            if (processNumber == 0)
+                std::cout << "\nCould not find portOffset files at: "
+                        << portFilePathOld
+                        << "\nTrying alternative: "
+                        << portFilePath << "\n"
+                        << std::endl;
+
+            readPortFile(processNumber, portFilePath,
+                         portOffset, foundPortFile, 10);
+
+            if (!foundPortFile)
+            {
+                if (processNumber == 0)
+                    std::cout
+                        << "\nERROR: CFD could not find portOffset file.\n"
+                        << "   Probably there was no user defined portOffset "
+                        << "   file and the DEM was not able to find suitable ports.\n"
+                        << "*  Find details in the documentation "
+                        << "   (look for 'Setup a case using socket communication').\n"
+                        << std::endl;
+                error_one("FatalError: portOffset file not found.");
+            }
         }
     }
 
     // server accept socket / client connect to socket
-    if(server_)
+    if (server_)
     {
         sleep(3);
 
