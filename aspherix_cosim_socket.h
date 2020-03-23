@@ -38,6 +38,7 @@ enum class SocketCodes
     bounding_box_update,
     read_a_number,
     read_a_word,
+    ping,
     invalid,
     request_quit
 };
