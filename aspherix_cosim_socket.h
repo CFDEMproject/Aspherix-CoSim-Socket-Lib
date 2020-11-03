@@ -86,12 +86,15 @@ private:
     int selectTO(int& sock);
 
     int waitSeconds_;
+    
+    const bool verbose_;
+    const size_t processNumber_;
 
 public:
     // Constructors
 
     //- Construct from components
-    AspherixCoSimSocket(bool mode, const size_t port_offset, std::string customPortFilePath="", int waitSeconds=1);
+    AspherixCoSimSocket(bool mode, const size_t port_offset, std::string customPortFilePath="", int waitSeconds=1, bool verbose=false);
 
     // Destructor
     ~AspherixCoSimSocket();
@@ -141,6 +144,8 @@ public:
     inline std::vector<std::string> get_pullTypeList(){return pullTypeList_;}
     inline void set_pullTypeList(std::vector<std::string> var){pullTypeList_=var;}
     inline void pushBack_pullTypeList(std::string var){pullTypeList_.push_back(var);}
+    
+    void printTime();
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
