@@ -7,9 +7,15 @@ SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # setting this so that there are no issues with open foam
 OPTION(SKIP_MPICXX "Skip mpicxx (recommended for OpenFOAM/Coupling compilations)" ON)
-if (SKIP_MPICXX)
-    set(MPI_CXX_SKIP_MPICXX TRUE)
+if (${SKIP_MPICXX})
+    OPTION(MPI_CXX_SKIP_MPICXX "Skip mpicxx (recommended for OpenFOAM/Coupling compilations)" ON)
+    set(CMAKE_CXX_FLAGS "-DMPICH_SKIP_MPICXX -DOMPI_SKIP_MPICXX")
+else()
+    OPTION(MPI_CXX_SKIP_MPICXX "Skip mpicxx (recommended for OpenFOAM/Coupling compilations)" OFF)
 endif()
+
+#set verbose Makefile to double check mpicxx
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(SOURCE aspherix_cosim_socket.h aspherix_cosim_socket.cpp)
 
