@@ -691,10 +691,14 @@ int AspherixCoSimSocket::selectTO(int& sockfd)
     MPI_Allreduce(&retval, &all_retval, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
     retval = all_retval;
 
-    printTime();
-    if (retval <= 0) error_one("Error: AspherixCoSimSocket::select: Server select() failed after timeout.");
+    if (retval <= 0)
+    {
+        printTime();
+        error_one("Error: AspherixCoSimSocket::select: Server select() failed after timeout.");
+    }
     else if (verbose_)
     {
+        printTime();
         std::cout << "AspherixCoSimSocket::select: process " << processNumber_ << " Server select() successful." << std::endl;
     }
     return retval;
