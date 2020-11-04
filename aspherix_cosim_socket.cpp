@@ -171,9 +171,12 @@ AspherixCoSimSocket::AspherixCoSimSocket
             // try attaching socket to the port
             if (bind(sockfd_, (struct sockaddr *)&address, sizeof(address)) < 0)
             {
-                printTime();
-                std::cout << "  process number " << processNumber << " Bind to "
-                          << std::to_string(PORT+processNumber+portOffset) << " failed." << std::endl;
+                if (verbose_)
+                {
+                    printTime();
+                    std::cout << "  process number " << processNumber << " Bind to "
+                              << std::to_string(PORT+processNumber+portOffset) << " failed." << std::endl;
+                }
 
                 if (n_tries > n_tries_max)
                 {
