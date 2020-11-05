@@ -393,12 +393,14 @@ AspherixCoSimSocket::AspherixCoSimSocket
             else if (verbose_)
             {
                 printTime();
-                std::cout << "Client: " << processNumber << " Connection attempt " << ntries <<"/" << ntry_max << std::endl;
+                std::cout << "Client: " << processNumber << " Connection attempt " << ntries <<"/" << ntry_max
+                          << ", waiting for timeOut=" << waitSeconds_<< "s" << std::endl;
             }
             else if (processNumber == 0)
             {
                 printTime();
-                std::cout << "Client: Connection attempt " << ntries <<"/" << ntry_max << std::endl;
+                std::cout << "Client: Connection attempt " << ntries <<"/" << ntry_max
+                          << ", waiting for timeOut=" << waitSeconds_ << "s"<< std::endl;
             }
         }
         //char buf[1];
@@ -694,12 +696,12 @@ int AspherixCoSimSocket::selectTO(int& sockfd)
     if (retval <= 0)
     {
         printTime();
-        error_one("Error: AspherixCoSimSocket::select: Server select() failed after timeout.");
+        error_one("Error: AspherixCoSimSocket::select: Server select() pre-connection socket test failed.");
     }
     else if (verbose_)
     {
         printTime();
-        std::cout << "AspherixCoSimSocket::select: process " << processNumber_ << " Server select() successful." << std::endl;
+        std::cout << "AspherixCoSimSocket::select: process " << processNumber_ << " Server select() connection test successful." << std::endl;
     }
     return retval;
 }
@@ -1016,7 +1018,7 @@ void AspherixCoSimSocket::printTime()
     struct std::tm * locTime;
     std::time(&curT);
     locTime = std::localtime(&curT);
-    std::cout << "[" << locTime->tm_hour << ":" << locTime->tm_min << ":" << locTime->tm_sec << "] ";
+    printf("[%02d:%02d:%02d] ",locTime->tm_hour,locTime->tm_min,locTime->tm_sec);
     return;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
