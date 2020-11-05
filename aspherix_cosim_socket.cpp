@@ -199,7 +199,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
                 else if (processNumber == 0)
                 {
                     printTime();
-                    std::cout << "Server: bind successful";
+                    std::cout << "Server: bind successful" << std::endl;
                 }
                 success=1;
             }
