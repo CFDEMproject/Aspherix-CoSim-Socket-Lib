@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h> // needed for connect with timeout
 #include <ctime>
+#include <stdexcept>
 
 #include <vector>
 #include <numeric>
