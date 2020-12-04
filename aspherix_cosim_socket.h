@@ -88,13 +88,23 @@ private:
     int waitSeconds_;
     
     const bool verbose_;
+    const bool keepPortOffsetFile_;
+    std::string portFileName_;
     const size_t processNumber_;
 
 public:
     // Constructors
 
     //- Construct from components
-    AspherixCoSimSocket(bool mode, const size_t port_offset, std::string customPortFilePath="", int waitSeconds=1, bool verbose=false);
+    AspherixCoSimSocket
+    (
+        bool mode,
+        const size_t port_offset,
+        std::string customPortFilePath="",
+        int  waitSeconds=1,
+        bool verbose=false,
+        bool keepPortOffsetFile=false
+    );
 
     // Destructor
     ~AspherixCoSimSocket();

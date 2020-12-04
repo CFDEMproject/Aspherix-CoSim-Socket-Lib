@@ -39,7 +39,8 @@ AspherixCoSimSocket::AspherixCoSimSocket
     const size_t processNumber,
     std::string customPortFilePath,
     int waitSeconds,
-    bool verbose
+    bool verbose,
+    bool keepPortOffsetFile
 )
 :
     sockfd_(0),
@@ -63,10 +64,10 @@ AspherixCoSimSocket::AspherixCoSimSocket
     portRangeReserved_(1),
     waitSeconds_(1),
     verbose_(verbose),
+    keepPortOffsetFile_(keepPortOffsetFile),
+    portFileName_(""),
     processNumber_(processNumber)
 {
-//    verbose_ = verbose;
-//    processNumber_ = processNumber;
     // create socket with DEM process
     if(processNumber==0)
     {
@@ -98,20 +99,18 @@ AspherixCoSimSocket::AspherixCoSimSocket
     std::string portFilePath(cwd + "/" + customPortFilePath +
             "/portOffset_" + std::to_string(processNumber) + ".txt");
 
-    if(server_)
+    if (server_)
     {
         // check if portfile exists and read it
-        readPortFile(processNumber,portFilePath,portOffset,foundPortFile);
+        readPortFile(processNumber, portFilePath, portOffset, foundPortFile);
 
-        if(foundPortFile==0)
+        if (foundPortFile == 0 && processNumber == 0)
         {
-            if(processNumber==0)
-                std::cout << "\nDEM could not find portOffset file.\n"
-                          << "   As a fallback an automatic detection of an available port will be started.\n"
-                          << "*  Find details in the documentation (look for 'Setup a case using socket communication').\n" << std::endl;
-
-            // enforce portFile defined by user (no auto detect)
-            //error_one("FatalError: portOffset files not found.");
+            std::cout
+                << "\nDEM could not find portOffset file.\n"
+                << "   Auto-detecting available ports...\n"
+                << "*  Find details in the documentation (look for 'Setup a case using socket communication').\n"
+                << std::endl;
         }
     }
     //==================================================
@@ -258,6 +257,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
             {
                 myfile2 << std::to_string(portOffset) << "\n";
                 myfile2.close();
+                portFileName_ = portFilePath;
             }
             else
             {
@@ -362,8 +362,8 @@ AspherixCoSimSocket::AspherixCoSimSocket
             printTime();
             std::cout<< "Client: trying to connect with PORTS(49152+portOffset+procNr)" << std::endl;
         }
-        
-        
+
+
         address.sin_port = htons(PORT+processNumber+portOffset);
 
         // trying connecton first
@@ -1011,6 +1011,13 @@ void AspherixCoSimSocket::closeSocket()
         ::close(insockfd_);
     if (sockfd_ > 0)
         ::close(sockfd_);
+
+    if (server_ && !keepPortOffsetFile_)
+    {
+        int success = remove(portFileName_.c_str());
+        if (success != 0)
+            std::cout << "Warning: portFile could not be deleted.\n";
+    }
 }
 
 void AspherixCoSimSocket::printTime()
