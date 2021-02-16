@@ -318,7 +318,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         sleep(3);
 
         // test the socket with t/o before accept
-        int result = selectTO(sockfd_);
+        selectTO(sockfd_);
 
         // try accept
         if (verbose_)
@@ -370,7 +370,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         //int result = tryConnect(address); // does not work?
 
         // test the socket with t/o before accept
-        //int result = selectTO(sockfd_);
+        //selectTO(sockfd_);
 
         int ntries = 0;
         int ntry_max = 5;
@@ -676,7 +676,7 @@ int AspherixCoSimSocket::tryConnect(struct sockaddr_in address)
     return res;
 }
 
-int AspherixCoSimSocket::selectTO(int& sockfd)
+void AspherixCoSimSocket::selectTO(int& sockfd)
 {
     // use select to test the connection with a timeout
     fd_set sock;
@@ -704,7 +704,6 @@ int AspherixCoSimSocket::selectTO(int& sockfd)
         printTime();
         std::cout << "AspherixCoSimSocket::select: process " << processNumber_ << " Server select() connection test successful." << std::endl;
     }
-    return retval;
 }
 
 // * * * * * * * * * * * * * * * public Member Functions  * * * * * * * * * * * * * //

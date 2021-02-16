@@ -83,7 +83,7 @@ private:
     void deleteFile(const std::string path);
     void readPortFile(int proc, const std::string path,size_t& port,int& found,int n_tries_max=1);
     int tryConnect(struct sockaddr_in);
-    int selectTO(int& sock);
+    void selectTO(int& sock);
 
     int waitSeconds_;
     
