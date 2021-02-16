@@ -92,7 +92,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
     // Problem: here we assume CFD and DEM live in their own directories and
     // both directories have the same mother directory
     // TODO: find a better solution (e.g. absolute file path and unique filename?)
-    size_t size;
+    size_t size = 0;
     char *path = NULL;
     path = getcwd(path,size);
     std::string cwd = path;
@@ -529,7 +529,7 @@ void AspherixCoSimSocket::deleteFile(const std::string path)
         puts( ("Server: File " + path + " successfully deleted.").c_str() );
 }
 
-void AspherixCoSimSocket::readPortFile(int proc, const std::string path,size_t& port,int& found,int n_tries_max)
+void AspherixCoSimSocket::readPortFile(int /*proc*/, const std::string path,size_t& port,int& found,int n_tries_max)
 {
     if (verbose_)
     {
