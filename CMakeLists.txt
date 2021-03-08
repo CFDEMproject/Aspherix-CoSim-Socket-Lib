@@ -18,7 +18,7 @@ endif()
 #set verbose Makefile to double check mpicxx
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(SOURCE aspherix_cosim_socket.h aspherix_cosim_socket.cpp)
+set(SOURCE aspherix_cosim_socket.cpp)
 
 OPTION(STATIC_LIBRARY "Compile as static library" OFF)
 
@@ -27,6 +27,7 @@ if (STATIC_LIBRARY)
 else()
     add_library(aspherix_cosim_socket SHARED ${SOURCE})
 endif()
+set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_socket.h)
 
 OPTION(STATIC_LIBSTDCPP "Build with statically linked C++ standard library" OFF)
 
@@ -70,13 +71,13 @@ ENDIF(MPI_FOUND)
 
 #=============================================================
 
-install(TARGETS aspherix_cosim_socket DESTINATION lib)
-if (EXISTS "${CMAKE_SOURCE_DIR}/aspherix_cosim_socketConfig.cmake")
+install(TARGETS aspherix_cosim_socket DESTINATION lib
+        PUBLIC_HEADER DESTINATION include/aspherix_cosim_socket)
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/aspherix_cosim_socketConfig.cmake")
     install(FILES ${SOURCE} DESTINATION include/aspherix_cosim_socket)
     install(FILES CMakeLists.txt DESTINATION include/aspherix_cosim_socket)
     install(FILES compileLib.sh DESTINATION include/aspherix_cosim_socket)
     install(FILES aspherix_cosim_socketConfig.cmake DESTINATION share/aspherix_cosim_socket)
     install(FILES license.txt DESTINATION share/aspherix_cosim_socket)
-else()
-    install(FILES aspherix_cosim_socket.h DESTINATION include/aspherix_cosim_socket)
 endif()
