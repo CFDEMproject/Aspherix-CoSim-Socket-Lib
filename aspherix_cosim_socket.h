@@ -86,7 +86,8 @@ private:
     void selectTO(int& sock);
 
     int waitSeconds_;
-    
+    int ntries_connect_;
+
     const bool verbose_;
     const bool keepPortOffsetFile_;
     std::string portFileName_;
@@ -102,6 +103,7 @@ public:
         const size_t port_offset,
         std::string customPortFilePath="",
         int  waitSeconds=1,
+        int  ntries_connect_=10,
         bool verbose=false,
         bool keepPortOffsetFile=false
     );
