@@ -856,8 +856,22 @@ void AspherixCoSimSocket::buildBytePattern()
         {
             pushBytesPerPropList_[i]=nbytesVector_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
-            std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
+            //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
         }
+
+        else if(pushTypeList_[i]=="scalar-pointcloud")
+        {
+            pushBytesPerPropList_[i]=nbytesScalar_;
+            rcvBytesPerParticle_+=pushBytesPerPropList_[i];
+            //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if(pushTypeList_[i]=="vector-pointcloud")
+        {
+            pushBytesPerPropList_[i]=nbytesVector_;
+            rcvBytesPerParticle_+=pushBytesPerPropList_[i];
+            //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+
         else if (pushTypeList_[i] == "vector2D-atom")
         {
             pushBytesPerPropList_[i] = nbytesVector2D_;
@@ -906,6 +920,18 @@ void AspherixCoSimSocket::buildBytePattern()
             //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
         }
         else if(pullTypeList_[i]=="vector-multisphere")
+        {
+            pullBytesPerPropList_[i]=nbytesVector_;
+            sndBytesPerParticle_+=pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if(pullTypeList_[i]=="scalar-pointcloud")
+        {
+            pullBytesPerPropList_[i]=nbytesScalar_;
+            sndBytesPerParticle_+=pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if(pullTypeList_[i]=="vector-pointcloud")
         {
             pullBytesPerPropList_[i]=nbytesVector_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
