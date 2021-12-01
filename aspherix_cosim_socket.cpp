@@ -39,6 +39,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
     const size_t processNumber,
     std::string customPortFilePath,
     int waitSeconds,
+    int ntries_connect,
     bool verbose,
     bool keepPortOffsetFile
 )
@@ -63,6 +64,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
     pullTypeList_(0),
     portRangeReserved_(1),
     waitSeconds_(1),
+    ntries_connect_(10),
     verbose_(verbose),
     keepPortOffsetFile_(keepPortOffsetFile),
     portFileName_(""),
@@ -83,6 +85,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         }
     }
     waitSeconds_ = waitSeconds;
+    ntries_connect_ = ntries_connect;
     //==================================================
     // CHECK IF PORT FILE EXISTS AND READ IF IT DOES
     size_t portOffset(0);
@@ -270,7 +273,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
     {
         // check if portfile exists and read it
         readPortFile(processNumber, portFilePath,
-                     portOffset, foundPortFile, 10);
+                     portOffset, foundPortFile, ntries_connect_);
 
         if (!foundPortFile)
         {
@@ -292,7 +295,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
             }
 
             readPortFile(processNumber, portFilePath,
-                         portOffset, foundPortFile, 10);
+                         portOffset, foundPortFile, ntries_connect_);
 
             if (!foundPortFile)
             {
@@ -373,7 +376,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         //selectTO(sockfd_);
 
         int ntries = 0;
-        int ntry_max = 5;
+        int ntry_max = ntries_connect_;
         while (connect(sockfd_, (struct sockaddr *)&address, sizeof(address)) < 0)
         {
             sleep(waitSeconds_);
@@ -856,8 +859,22 @@ void AspherixCoSimSocket::buildBytePattern()
         {
             pushBytesPerPropList_[i]=nbytesVector_;
             rcvBytesPerParticle_+=pushBytesPerPropList_[i];
-            std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
+            //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
         }
+
+        else if(pushTypeList_[i]=="scalar-pointcloud")
+        {
+            pushBytesPerPropList_[i]=nbytesScalar_;
+            rcvBytesPerParticle_+=pushBytesPerPropList_[i];
+            //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if(pushTypeList_[i]=="vector-pointcloud")
+        {
+            pushBytesPerPropList_[i]=nbytesVector_;
+            rcvBytesPerParticle_+=pushBytesPerPropList_[i];
+            //std::cout << " for property=" << pushNameList_[i] << ", of type="<< pushTypeList_[i] <<", we add " << pushBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+
         else if (pushTypeList_[i] == "vector2D-atom")
         {
             pushBytesPerPropList_[i] = nbytesVector2D_;
@@ -906,6 +923,18 @@ void AspherixCoSimSocket::buildBytePattern()
             //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
         }
         else if(pullTypeList_[i]=="vector-multisphere")
+        {
+            pullBytesPerPropList_[i]=nbytesVector_;
+            sndBytesPerParticle_+=pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if(pullTypeList_[i]=="scalar-pointcloud")
+        {
+            pullBytesPerPropList_[i]=nbytesScalar_;
+            sndBytesPerParticle_+=pullBytesPerPropList_[i];
+            //std::cout << " for pull property=" << pullNameList_[i] << ", of type="<< pullTypeList_[i] <<", we add " << pullBytesPerPropList_[i] << " bytes." << std::endl;
+        }
+        else if(pullTypeList_[i]=="vector-pointcloud")
         {
             pullBytesPerPropList_[i]=nbytesVector_;
             sndBytesPerParticle_+=pullBytesPerPropList_[i];
