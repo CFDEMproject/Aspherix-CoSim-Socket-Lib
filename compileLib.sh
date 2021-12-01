@@ -10,8 +10,10 @@
 #
 #===================================================================#
 
-mkdir build
-mkdir install
+set -e    # script should always report failures
+
+rm -rf build install
+mkdir build install
 pushd build
 cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install -DSTATIC_LIBSTDCPP=ON -DSTATIC_LIBRARY=ON ..
 make clean
