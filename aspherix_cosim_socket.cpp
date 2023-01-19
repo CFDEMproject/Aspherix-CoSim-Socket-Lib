@@ -101,6 +101,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
     std::string cwd = path;
     std::string portFilePath(cwd + "/" + customPortFilePath +
             "/portOffset_" + std::to_string(processNumber) + ".txt");
+    delete[] path;
 
     if (server_)
     {
