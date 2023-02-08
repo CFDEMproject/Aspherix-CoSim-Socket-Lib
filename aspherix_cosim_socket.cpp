@@ -1055,8 +1055,11 @@ void AspherixCoSimSocket::printTime()
     struct std::tm * locTime;
     std::time(&curT);
     locTime = std::localtime(&curT);
-    printf("[%02d:%02d:%02d] ",locTime->tm_hour,locTime->tm_min,locTime->tm_sec);
-    return;
+    if (locTime)
+        printf("[%02d:%02d:%02d] ",locTime->tm_hour,locTime->tm_min,locTime->tm_sec);
+    else
+        fprintf(stderr, "Local time not available)
+    
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
