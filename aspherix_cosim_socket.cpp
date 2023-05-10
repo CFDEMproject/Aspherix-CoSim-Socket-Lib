@@ -1058,8 +1058,7 @@ void AspherixCoSimSocket::printTime()
     if (locTime)
         printf("[%02d:%02d:%02d] ",locTime->tm_hour,locTime->tm_min,locTime->tm_sec);
     else
-        fprintf(stderr, "Local time not available)
-    
+        fprintf(stderr, "Local time not available");
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
