@@ -471,10 +471,23 @@ AspherixCoSimSocket::AspherixCoSimSocket
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 AspherixCoSimSocket::~AspherixCoSimSocket()
 {
-    SocketCodes msg = SocketCodes::close_connection;
-    write_socket(&msg, sizeof(SocketCodes));
-    read_socket(&msg, sizeof(SocketCodes));
-    closeSocket();
+    try
+    {
+        SocketCodes msg = SocketCodes::close_connection;
+        write_socket(&msg, sizeof(SocketCodes));
+        read_socket(&msg, sizeof(SocketCodes));
+        closeSocket();
+    }
+    catch (const std::runtime_error& re)
+    {
+        // NOTE: no need to manually closeConnection here, since error_ function already did so
+        std::string other = "DEM";
+        if (server_)
+            other = "CFD";
+        if (processNumber_ == 0)
+            std::cout << "Could not request closure of socket connection. "
+                << other << " side has already shut down. Closing regardless." << std::endl;
+    }
 }
 
 // * * * * * * * * * * * * * * * private Member Functions  * * * * * * * * * * * * * //
