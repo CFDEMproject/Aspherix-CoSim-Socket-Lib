@@ -43,6 +43,12 @@ enum class SocketCodes
     request_quit
 };
 
+enum class DataObject
+{
+    Particle,
+    Boundary
+};
+
 /*---------------------------------------------------------------------------*\
                            Class AspherixCoSimSocket Declaration
 \*---------------------------------------------------------------------------*/
@@ -69,8 +75,11 @@ private:
     std::vector<int> pullBytesPerPropList_;
     std::vector<int> pullCumOffsetPerProperty_;
 
+    std::vector<DataObject> pushObjectList_;
     std::vector<std::string> pushNameList_;
     std::vector<std::string> pushTypeList_;
+
+    std::vector<DataObject> pullObjectList_;
     std::vector<std::string> pullNameList_;
     std::vector<std::string> pullTypeList_;
 
@@ -114,7 +123,7 @@ public:
 
     // Member Functions
     void read_socket(void *const buf, const size_t size);
-    void write_socket(void *const buf, const size_t size);
+    void write_socket(const void *const buf, const size_t size);
     void sendPushPullProperties();
     void buildBytePattern();
     void exchangeStatus(SocketCodes statusSend, SocketCodes statusExpect);
@@ -144,7 +153,11 @@ public:
 
     inline std::vector<std::string> get_pushNameList(){return pushNameList_;}
     inline void set_pushNameList(std::vector<std::string> var){pushNameList_=var;}
-    inline void pushBack_pushNameList(std::string var){pushNameList_.push_back(var);}
+    inline void pushBack_pushNameList(std::string var, const DataObject object = DataObject::Particle)
+    {
+        pushNameList_.push_back(var);
+        pushObjectList_.push_back(object);
+    }
 
     inline std::vector<std::string> get_pushTypeList(){return pushTypeList_;}
     inline void set_pushTypeList(std::vector<std::string> var){pushTypeList_=var;}
@@ -152,7 +165,11 @@ public:
 
     inline std::vector<std::string> get_pullNameList(){return pullNameList_;}
     inline void set_pullNameList(std::vector<std::string> var){pullNameList_=var;}
-    inline void pushBack_pullNameList(std::string var){pullNameList_.push_back(var);}
+    inline void pushBack_pullNameList(std::string var, const DataObject object = DataObject::Particle)
+    {
+        pullNameList_.push_back(var);
+        pullObjectList_.push_back(object);
+    }
 
     inline std::vector<std::string> get_pullTypeList(){return pullTypeList_;}
     inline void set_pullTypeList(std::vector<std::string> var){pullTypeList_=var;}
