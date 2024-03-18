@@ -58,8 +58,10 @@ AspherixCoSimSocket::AspherixCoSimSocket
     pushCumOffsetPerProperty_(0),
     pullBytesPerPropList_(0),
     pullCumOffsetPerProperty_(0),
+    pushObjectList_(0),
     pushNameList_(0),
     pushTypeList_(0),
+    pullObjectList_(0),
     pullNameList_(0),
     pullTypeList_(0),
     portRangeReserved_(1),
@@ -724,16 +726,16 @@ void AspherixCoSimSocket::selectTO(int& sockfd)
 }
 
 // * * * * * * * * * * * * * * * public Member Functions  * * * * * * * * * * * * * //
-void AspherixCoSimSocket::write_socket(void *const buf, const size_t size)
+void AspherixCoSimSocket::write_socket(const void *const buf, const size_t size)
 {
     size_t send_size = 0;
     int cur_size(0);
     while (send_size < size)
     {
         if(server_)
-            cur_size = ::write(insockfd_, static_cast<char*>(buf)+send_size, size-send_size);
+            cur_size = ::write(insockfd_, static_cast<const char*>(buf)+send_size, size-send_size);
         else
-            cur_size = ::write(sockfd_, static_cast<char*>(buf)+send_size, size-send_size);
+            cur_size = ::write(sockfd_, static_cast<const char*>(buf)+send_size, size-send_size);
         if (cur_size < 0)
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -776,7 +778,7 @@ void AspherixCoSimSocket::sendPushPullProperties()
 {
     // send number of push (from DEM to CFD) properties
     //std::cout << "    send number of push (from DEM to CFD) properties ... pushNameList_.size()=" << pushNameList_.size() << std::endl;
-    size_t h=pushNameList_.size();
+    size_t h = pushNameList_.size();
     write_socket(&h, sizeof(size_t));
     //std::cout << "    send number of push (from DEM to CFD) properties - done." << std::endl;
 
