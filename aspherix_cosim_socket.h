@@ -102,6 +102,7 @@ public:
         bool mode,
         const size_t port_offset,
         std::string customPortFilePath="",
+        const size_t customPortBase=49152,
         int  waitSeconds=1,
         int  ntries_connect_=10,
         bool verbose=false,
@@ -156,7 +157,7 @@ public:
     inline std::vector<std::string> get_pullTypeList(){return pullTypeList_;}
     inline void set_pullTypeList(std::vector<std::string> var){pullTypeList_=var;}
     inline void pushBack_pullTypeList(std::string var){pullTypeList_.push_back(var);}
-    
+
     void printTime();
 };
 
