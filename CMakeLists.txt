@@ -1,9 +1,10 @@
-project(aspherix_cosim_socket CXX)
 
 cmake_minimum_required(VERSION 3.1)
 if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif()
+
+project(aspherix_cosim_socket CXX)
 
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
