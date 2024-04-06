@@ -102,7 +102,7 @@ public:
         bool mode,
         const size_t port_offset,
         std::string customPortFilePath="",
-        const size_t customPortBase=49152,
+        const size_t portBase=49152,
         int  waitSeconds=1,
         int  ntries_connect_=10,
         bool verbose=false,

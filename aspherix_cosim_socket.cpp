@@ -37,7 +37,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
     bool mode,
     const size_t processNumber,
     std::string customPortFilePath,
-    const size_t customPortBase,
+    const size_t portBase,
     int waitSeconds,
     int ntries_connect,
     bool verbose,
@@ -123,14 +123,14 @@ AspherixCoSimSocket::AspherixCoSimSocket
     sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd_ < 0)
         error_one("\n\nERROR: Socket creation failed");
-    const std::string customPortBase_str = std::to_string(customPortBase);
-    const size_t port = customPortBase + processNumber + portOffset;
+    const std::string portBase_str = std::to_string(portBase);
 
     if(foundPortFile==1)
     {
         printTime();
-        std::cout << "Server: will forcefully attach to port " << customPortBase_str
-            << " " << std::to_string(port) << "!" << std::endl;
+        std::cout << "Server: will forcefully attach to port " << portBase_str
+            << " " << std::to_string(portBase + processNumber + portOffset)
+            << "!" << std::endl;
         int opt = 1;
         // Forcefully attaching socket to the port
         if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
@@ -159,7 +159,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
 
         while(success == 0)
         {
-            address.sin_port = htons(port);
+            address.sin_port = htons(portBase + processNumber + portOffset);
             success=0;
             n_tries++;
 
@@ -168,7 +168,8 @@ AspherixCoSimSocket::AspherixCoSimSocket
                 printTime();
                 std::cout << "Server: process number " << processNumber
                     << " trying to bind/listen with PORT(portBase+portOffset+procNr)="
-                          << std::to_string(port) << std::endl;
+                    << std::to_string(portBase + processNumber + portOffset)
+                    << std::endl;
             }
             else if (processNumber == 0)
             {
@@ -183,14 +184,15 @@ AspherixCoSimSocket::AspherixCoSimSocket
                 {
                     printTime();
                     std::cout << "  process number " << processNumber << " Bind to "
-                              << std::to_string(port) << " failed." << std::endl;
+                        << std::to_string(portBase + processNumber + portOffset)
+                        << " failed." << std::endl;
                 }
 
                 if (n_tries > n_tries_max)
                 {
                     printTime();
                     std::cout << "Server:  " << processNumber
-                              << " Bind to " << std::to_string(port)
+                              << " Bind to " << std::to_string(portBase + processNumber + portOffset)
                               << " failed (probably the port is not (yet?) available?)" << std::endl;
                     break; // tried enough
                 }
@@ -230,13 +232,15 @@ AspherixCoSimSocket::AspherixCoSimSocket
         {
             printTime();
             std::cout << "  process number " << processNumber << " Listen to "
-                  << std::to_string(port) << " failed." << std::endl;
+                  << std::to_string(portBase + processNumber + portOffset)
+                  << " failed." << std::endl;
         }
         else if (verbose_) // if listen was successful, communicate port to client
         {
             printTime();
             std::cout << "  process number " << processNumber << " Bind+Listen to "
-                  << std::to_string(port) << " successful" << std::endl;
+                  << std::to_string(portBase + processNumber + portOffset)
+                  << " successful" << std::endl;
         }
         MPI_Barrier(MPI_COMM_WORLD);
         if(processNumber==0)
@@ -363,7 +367,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         {
             printTime();
             std::cout << "Client: process number " << processNumber << " trying to connect with PORT(portBase+portOffset+procNr)="
-                  << std::to_string(port) << std::endl;
+                  << std::to_string(portBase + processNumber + portOffset) << std::endl;
         }
         else if (processNumber == 0)
         {
@@ -372,7 +376,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         }
 
 
-        address.sin_port = htons(port);
+        address.sin_port = htons(portBase + processNumber + portOffset);
 
         // trying connecton first
         //int result = tryConnect(address); // does not work?
@@ -390,7 +394,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
             {
                 printTime();
                 std::cout << "Client: " << processNumber << " Connecting to socket port "
-                          << std::to_string(port) << " failed. " << std::endl;
+                          << std::to_string(portBase + processNumber + portOffset) << " failed. " << std::endl;
                 std::cout << "\nERROR: CFD could not connect to port.\n"
                           << "Probably the DEM run could not bind/connect to the port.\n"
                           << "*  Please make sure DEM was started as a separate run. Find details in the documentation (look for 'Setup a case using socket communication').\n"
@@ -445,7 +449,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         {
             printTime();
             std::cout << "Server: process number " << processNumber << " Socket connection established & tested on port "
-                      << std::to_string(port) << std::endl;
+                      << std::to_string(portBase + processNumber + portOffset) << std::endl;
         }
         else if (processNumber == 0)
         {
@@ -462,7 +466,7 @@ AspherixCoSimSocket::AspherixCoSimSocket
         {
             printTime();
             std::cout << "Client: process number " << processNumber << " Socket connection established & tested on port "
-                      << std::to_string(port) << std::endl;
+                      << std::to_string(portBase + processNumber + portOffset) << std::endl;
         }
         else if (processNumber == 0)
         {
