@@ -6,7 +6,8 @@ endif()
 
 project(aspherix_cosim_socket CXX)
 
-SET(CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_STANDARD 17)
+
 SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # setting this so that there are no issues with open foam
@@ -21,7 +22,7 @@ endif()
 #set verbose Makefile to double check mpicxx
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(SOURCE aspherix_cosim_socket.cpp)
+set(SOURCE aspherix_cosim_socket.cpp aspherix_cosim_field.cpp)
 
 OPTION(STATIC_LIBRARY "Compile as static library" OFF)
 
@@ -30,7 +31,7 @@ if (STATIC_LIBRARY)
 else()
     add_library(aspherix_cosim_socket SHARED ${SOURCE})
 endif()
-set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_socket.h)
+set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_socket.h aspherix_cosim_field.h)
 
 OPTION(STATIC_LIBSTDCPP "Build with statically linked C++ standard library" OFF)
 
