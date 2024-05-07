@@ -28,18 +28,19 @@
 #include <numeric>
 #include <vector>
 
+static constexpr int kBasePort = 49152;
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 // Construct from components
-AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
-                                         std::string customPortFilePath, const size_t portBase,
-                                         int waitSeconds, int ntries_connect, bool verbose,
+AspherixCoSimSocket::AspherixCoSimSocket(Mode mode, const size_t processNumber,
+                                         std::string customPortFilePath, int waitSeconds,
+                                         int ntries_connect, bool verbose,
                                          bool keepPortOffsetFile) :
     sockfd_(0),
     insockfd_(0),
-    server_(mode),
+    mode_(mode),
     rcvBytesPerParticle_(0),
     sndBytesPerParticle_(0),
     push_field_list_(),
@@ -47,6 +48,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
     portRangeReserved_(1),
     waitSeconds_(1),
     ntries_connect_(10),
+    port_(-1),
     verbose_(verbose),
     keepPortOffsetFile_(keepPortOffsetFile),
     portFileName_(""),
@@ -55,7 +57,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
     // create socket with DEM process
     if (processNumber == 0)
     {
-        if (server_)
+        if (isServer())
         {
             printTime();
             std::cout << "Create socket with CFD process ..." << std::endl;
@@ -85,7 +87,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
                              + std::to_string(processNumber) + ".txt");
     free(path);
 
-    if (server_)
+    if (isServer())
     {
         // check if portfile exists and read it
         readPortFile(processNumber, portFilePath, portOffset, foundPortFile);
@@ -101,6 +103,8 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
     }
     //==================================================
 
+    port_ = kBasePort + processNumber + portOffset;
+
     // Creating socket file descriptor
     sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd_ < 0)
@@ -112,8 +116,8 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
         if (portFileName_.empty())
             portFileName_ = portFilePath;
         printTime();
-        std::cout << "Server: will forcefully attach to port " << portBase_str << " "
-                  << std::to_string(portBase + processNumber + portOffset) << "!" << std::endl;
+        std::cout << "Server: will forcefully attach to port " << std::to_string(port_) << "!"
+                  << std::endl;
         int opt = 1;
         // Forcefully attaching socket to the port
         if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
@@ -132,8 +136,8 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
 
-    int success(0);
-    if (server_)
+    bool success = false;
+    if (isServer())
     {
         int n_tries(0);
         int n_tries_max(
@@ -141,18 +145,20 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
         if (foundPortFile == 1)
             n_tries_max = 0;
 
-        while (success == 0)
+        while (!success)
         {
-            address.sin_port = htons(portBase + processNumber + portOffset);
-            success = 0;
+            port_ = kBasePort + processNumber + portOffset;
+            address.sin_port = htons(port_);
+            success = false;
             n_tries++;
 
             if (verbose_)
             {
                 printTime();
                 std::cout << "Server: process number " << processNumber
-                          << " trying to bind/listen with PORT(portBase+portOffset+procNr)="
-                          << std::to_string(portBase + processNumber + portOffset) << std::endl;
+                          << " trying to bind/listen with PORT(" + std::to_string(kBasePort)
+                                 + "+ portOffset + procNr )="
+                          << std::to_string(port_) << std::endl;
             }
             else if (processNumber == 0)
             {
@@ -167,21 +173,19 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
                 {
                     printTime();
                     std::cout << "  process number " << processNumber << " Bind to "
-                              << std::to_string(portBase + processNumber + portOffset) << " failed."
-                              << std::endl;
+                              << std::to_string(port_) << " failed." << std::endl;
                 }
 
                 if (n_tries > n_tries_max)
                 {
                     printTime();
                     std::cout << "Server:  " << processNumber << " Bind to "
-                              << std::to_string(portBase + processNumber + portOffset)
+                              << std::to_string(port_)
                               << " failed (probably the port is not (yet?) available?)"
                               << std::endl;
                     break; // tried enough
                 }
                 portOffset += portRangeReserved_; // increase port by nProcs
-                sleep(0.1);
             }
             else
             {
@@ -197,16 +201,17 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
                     printTime();
                     std::cout << "Server: bind successful" << std::endl;
                 }
-                success = 1;
+                success = true;
             }
         }
-        if (success == 0)
+        if (!success)
         {
             printTime();
             error_one("Server: Bind failed after all tries.");
         }
 
         MPI_Barrier(MPI_COMM_WORLD);
+
         if (processNumber == 0)
         {
             printTime();
@@ -218,15 +223,13 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
         {
             printTime();
             std::cout << "  process number " << processNumber << " Listen to "
-                      << std::to_string(portBase + processNumber + portOffset) << " failed."
-                      << std::endl;
+                      << std::to_string(port_) << " failed." << std::endl;
         }
         else if (verbose_) // if listen was successful, communicate port to client
         {
             printTime();
             std::cout << "  process number " << processNumber << " Bind+Listen to "
-                      << std::to_string(portBase + processNumber + portOffset) << " successful"
-                      << std::endl;
+                      << std::to_string(port_) << " successful" << std::endl;
         }
         MPI_Barrier(MPI_COMM_WORLD);
         if (processNumber == 0)
@@ -237,7 +240,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
     }
 
     // communicate suitable port with client via file
-    if (server_) // server reads port from file if exists or writes suitable port to file
+    if (isServer()) // server reads port from file if exists or writes suitable port to file
     {
         // only for auto port detection
         if (foundPortFile == 0)
@@ -302,10 +305,11 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
                 error_one("FatalError: portOffset file not found.");
             }
         }
+        port_ = kBasePort + processNumber + portOffset;
     }
 
     // server accept socket / client connect to socket
-    if (server_)
+    if (isServer())
     {
         sleep(3);
 
@@ -350,17 +354,19 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
         {
             printTime();
             std::cout << "Client: process number " << processNumber
-                      << " trying to connect with PORT(portBase+portOffset+procNr)="
-                      << std::to_string(portBase + processNumber + portOffset) << std::endl;
+                      << " trying to connect with PORT(" + std::to_string(kBasePort)
+                             + " + portOffset + procNr)="
+                      << std::to_string(port_) << std::endl;
         }
         else if (processNumber == 0)
         {
             printTime();
-            std::cout << "Client: trying to connect with PORTS(49152+portOffset+procNr)"
+            std::cout << "Client: trying to connect with PORTS(" + std::to_string(kBasePort)
+                             + " + portOffset + procNr)"
                       << std::endl;
         }
 
-        address.sin_port = htons(portBase + processNumber + portOffset);
+        address.sin_port = htons(port_);
 
         // trying connecton first
         // int result = tryConnect(address); // does not work?
@@ -378,8 +384,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
             {
                 printTime();
                 std::cout << "Client: " << processNumber << " Connecting to socket port "
-                          << std::to_string(portBase + processNumber + portOffset) << " failed. "
-                          << std::endl;
+                          << std::to_string(port_) << " failed. " << std::endl;
                 std::cout
                     << "\nERROR: CFD could not connect to port.\n"
                     << "Probably the DEM run could not bind/connect to the port.\n"
@@ -429,7 +434,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
     // std::cout << "Server: process number " << processNumber << " testing connection
     // (read/write)..." << std::endl;
     SocketCodes test_connection_out = SocketCodes::welcome_client;
-    if (server_)
+    if (isServer())
         test_connection_out = SocketCodes::welcome_server;
     SocketCodes test_connection_in = SocketCodes::invalid;
     writeSocket(test_connection_out);
@@ -437,7 +442,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
     //    read_socket(&test_connection_in, sizeof(SocketCodes));
     test_connection_in = readSocket<SocketCodes>();
 
-    if (server_)
+    if (isServer())
     {
         if (test_connection_in != SocketCodes::welcome_client)
             error_one("Server: Connection test failed, wrong hello received from client");
@@ -446,8 +451,8 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
         {
             printTime();
             std::cout << "Server: process number " << processNumber
-                      << " Socket connection established & tested on port "
-                      << std::to_string(portBase + processNumber + portOffset) << std::endl;
+                      << " Socket connection established & tested on port " << std::to_string(port_)
+                      << std::endl;
         }
         else if (processNumber == 0)
         {
@@ -463,11 +468,11 @@ AspherixCoSimSocket::AspherixCoSimSocket(bool mode, const size_t processNumber,
         if (verbose_)
         {
             printTime();
-            std::cout << "Client: process number " << processNumber
-                      << " Socket connection established & tested on port "
-                      << std::to_string(portBase + processNumber + portOffset) << std::endl;
+            std::cout << "Client: process number " << processNumber_
+                      << " Socket connection established & tested on port " << std::to_string(port_)
+                      << std::endl;
         }
-        else if (processNumber == 0)
+        else if (processNumber_ == 0)
         {
             printTime();
             std::cout << "Client: Socket connection established & tested" << std::endl;
@@ -481,9 +486,23 @@ AspherixCoSimSocket::~AspherixCoSimSocket()
     try
     {
         writeSocket(SocketCodes::close_connection);
-        auto msg_received = readSocket<SocketCodes>();
+        SocketCodes msg_received = readSocket<SocketCodes>();
         assert(msg_received == SocketCodes::close_connection);
         closeSocket();
+
+        const std::string src_type = isServer() ? "Server" : "Client";
+
+        if (verbose_)
+        {
+            printTime();
+            std::cout << src_type + ": process number " << processNumber_
+                      << " Socket connection closed on port " << std::to_string(port_) << std::endl;
+        }
+        else if (processNumber_ == 0)
+        {
+            printTime();
+            std::cout << src_type + ": Socket connection closed" << std::endl;
+        }
         /*
                 SocketCodes msg = SocketCodes::close_connection;
                 write_socket(&msg, sizeof(SocketCodes));
@@ -494,7 +513,7 @@ AspherixCoSimSocket::~AspherixCoSimSocket()
     {
         // NOTE: no need to manually closeConnection here, since error_ function already did so
         std::string other = "DEM";
-        if (server_)
+        if (isServer())
             other = "CFD";
         if (processNumber_ == 0)
             std::cout << "Could not request closure of socket connection. " << other
@@ -756,7 +775,7 @@ void AspherixCoSimSocket::write_socket(const void* const buf, const size_t size)
     int cur_size(0);
     while (send_size < size)
     {
-        if (server_)
+        if (isServer())
             cur_size = ::write(insockfd_, static_cast<const char*>(buf) + send_size,
                                size - send_size);
         else
@@ -783,7 +802,7 @@ void AspherixCoSimSocket::read_socket(void* const buf, const size_t size) const
     int cur_size(0);
     while (recv_size < size)
     {
-        if (server_)
+        if (isServer())
             cur_size = ::read(insockfd_, static_cast<char*>(buf) + recv_size, size - recv_size);
         else
             cur_size = ::read(sockfd_, static_cast<char*>(buf) + recv_size, size - recv_size);
@@ -804,7 +823,7 @@ void AspherixCoSimSocket::read_socket(void* const buf, const size_t size) const
     }
 }
 
-void AspherixCoSimSocket::sendPushPullProperties()
+void AspherixCoSimSocket::sendProperties()
 {
     // send number of push (from DEM to CFD) properties
     const auto nprops_push = writeFieldList(push_field_list_);
@@ -828,6 +847,19 @@ size_t AspherixCoSimSocket::writeFieldList(const std::vector<CoSimField>& field_
         writeField(field_list[i]);
     }
     return nprops;
+}
+
+size_t AspherixCoSimSocket::recvProperties()
+{
+    // send number of push (from DEM to CFD) properties
+    const auto nprops_push = readFieldList();
+    std::cout << "    " << nprops_push << " push properties received" << std::endl;
+
+    // send number of push (from DEM to CFD) properties
+    const auto nprops_pull = readFieldList();
+    std::cout << "    " << nprops_pull << " push properties received" << std::endl;
+
+    return nprops_push + nprops_pull;
 }
 
 size_t AspherixCoSimSocket::readFieldList()
@@ -898,11 +930,11 @@ void AspherixCoSimSocket::exchangeDomain(bool active, double* limits)
     }
 }
 
-std::vector<uint8_t> AspherixCoSimSocket::readData() const
+std::vector<char> AspherixCoSimSocket::readData() const
 {
     size_t vector_size;
     read_socket(&vector_size, sizeof(size_t));
-    std::vector<uint8_t> byte_vector;
+    std::vector<char> byte_vector;
     byte_vector.reserve(vector_size);
     read_socket(byte_vector.data(), vector_size);
     return byte_vector;
@@ -913,20 +945,15 @@ void AspherixCoSimSocket::writeField(const CoSimField& field)
     const auto byte_vector = field.toByteVector();
     const auto vector_size = byte_vector.size();
 
-    write_socket(&vector_size, sizeof(size_t));
-    write_socket(byte_vector.data(), vector_size);
-    /*    const size_t field_byte_size = field.byteLength();
-        write_socket(&field_byte_size, sizeof(size_t));
-        write_socket(byteArray.c_str(), byteArray.size());*/
+    writeSocket(vector_size);
+    writeSocket(byte_vector);
 }
 
 CoSimField AspherixCoSimSocket::readField()
 {
-    /*    size_t field_size;
-        read_socket(&field_size, sizeof(size_t));
-        char* byteArray = new char[field_size];
-        read_socket(byteArray, field_size);*/
-    const auto byte_vector = readData();
+    const size_t vector_size = readSocket<size_t>();
+    std::vector<char> byte_vector;
+    byte_vector = readSocket<std::vector<char>>(vector_size);
     return CoSimField(byte_vector);
 }
 
@@ -948,7 +975,7 @@ std::string AspherixCoSimSocket::readString()
     return result;
 }
 
-void AspherixCoSimSocket::writeData(const size_t& dataSize, const uint8_t*& data)
+void AspherixCoSimSocket::writeData(const size_t& dataSize, const char*& data)
 {
     write_socket(&dataSize, sizeof(size_t));
     write_socket(data, dataSize);
@@ -961,7 +988,7 @@ void AspherixCoSimSocket::closeSocket() const
     if (sockfd_ > 0)
         ::close(sockfd_);
 
-    if (server_ && !keepPortOffsetFile_)
+    if (isServer() && !keepPortOffsetFile_)
     {
         int success = remove(portFileName_.c_str());
         if (success != 0)

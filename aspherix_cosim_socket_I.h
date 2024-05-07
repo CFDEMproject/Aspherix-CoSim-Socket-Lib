@@ -39,19 +39,18 @@ SourceFiles
 #include <sys/socket.h>
 
 template <typename T>
-T AspherixCoSimSocket::readSocket() const
+T AspherixCoSimSocket::readSocket(size_t size) const
 {
-    static constexpr bool read_size = !std::is_trivially_copyable<T>::value;
-
-    constexpr size_t size = sizeof(T);
+    static constexpr bool needs_size = !std::is_trivially_copyable<T>::value;
 
     size_t recv_size = 0;
     int cur_size = 0;
 
-    std::vector< char > buf;
+    std::vector<char> buf;
     buf.reserve( size );
+    buf.resize( size );
 
-    const auto socket_file_descriptor = server_ ? insockfd_: sockfd_;
+    const auto socket_file_descriptor = isServer() ? insockfd_: sockfd_;
 
     while (recv_size < size)
     {
@@ -70,7 +69,10 @@ T AspherixCoSimSocket::readSocket() const
         recv_size += cur_size;
     }
 
-    return *reinterpret_cast<T*>(buf.data());
+    if constexpr (needs_size)
+        return buf;
+    else
+        return *reinterpret_cast<T*>(buf.data());
 }
 
 template<typename T>
@@ -93,7 +95,7 @@ int AspherixCoSimSocket::writeSocket(const T &object) const
     auto send_size = 0;
     auto cur_size = 0;
 
-    const auto socket_file_descriptor = server_ ? insockfd_: sockfd_;
+    const auto socket_file_descriptor = isServer() ? insockfd_: sockfd_;
 
     while (send_size < size)
     {

@@ -22,13 +22,50 @@ DataObjectMap DataObjectToString =
 };
 */
 
-CoSimField::CoSimField(const std::string &name_, const DataType &type,
-           const size_t data_length, const DataObject &object_,
-           const CommStyle &comm_) :
-    offset(0),
-    index(-1)
+CoSimField::CoSimField(const std::string &name, const DataType &type,
+           const size_t data_length, const DataObject &object,
+           const CommStyle &comm) :
+    name_(name),
+    type_(type),
+    data_length_(data_length),
+    object_(object),
+    comm_(comm),
+    offset_(0),
+    index_(-1)
 {};
 
+CoSimField::CoSimField(const std::string &name, const std::string &type, const DataObject &object, const bool pull)
+{
+    DataType data_type = DataType::Scalar;
+    int dataLength = 1;
+
+    const auto npos = std::string::npos;
+    if (type.find("scalar-") != npos)
+    {
+        if ( name == "body" || name == "id" || name == "type" || name == "shapetype" || // particle
+             name == "nrigid" || name == "clumptype" || name == "id_multisphere" )      // MS
+            data_type = DataType::Integer;
+        dataLength = 1;
+    }
+    else if (type.find("vector-") != npos)
+        dataLength = 3;
+    else if (type.find("vector2D-") != npos)
+        dataLength = 2;
+    else if (type.find("quaternion-") != npos)
+        dataLength = 4;
+
+    auto object_tmp = object;
+    if (type.find("-atom") != npos)
+        object_tmp = DataObject::Particle;
+    else if (type.find("-multisphere") != npos)
+        object_tmp = DataObject::Multisphere;
+    else if (type.find("-pointcloud") != npos)
+        object_tmp = DataObject::PointCloud;
+    else
+        object_tmp = DataObject::Boundary;
+
+    CoSimField(name, data_type, dataLength, object_tmp, pull ? CommStyle::Pull : CommStyle::Push);
+}
 /*
 int CoSimField::length() const
 {
