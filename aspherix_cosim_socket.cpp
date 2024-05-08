@@ -9,7 +9,6 @@
 // this is not available on Windows
 #ifndef _WIN32
 
-#define __INCLUDE_PRIVATE_SOCKET__
 #include "aspherix_cosim_socket.h"
 
 #include <arpa/inet.h>
@@ -199,6 +198,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(Mode mode, const size_t processNumber,
                 else if (processNumber == 0)
                 {
                     printTime();
+                    // std::cout << "\033[31mred text\033[0m\n";
                     std::cout << "Server: bind successful" << std::endl;
                 }
                 success = true;
@@ -244,7 +244,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(Mode mode, const size_t processNumber,
     {
         // only for auto port detection
         if (foundPortFile == 0)
-        // if(success==1)
+        // if(success)
         {
             if (verbose_)
             {
@@ -437,10 +437,10 @@ AspherixCoSimSocket::AspherixCoSimSocket(Mode mode, const size_t processNumber,
     if (isServer())
         test_connection_out = SocketCodes::welcome_server;
     SocketCodes test_connection_in = SocketCodes::invalid;
-    writeSocket(test_connection_out);
-    //    write_socket(&test_connection_out, sizeof(SocketCodes));
-    //    read_socket(&test_connection_in, sizeof(SocketCodes));
-    test_connection_in = readSocket<SocketCodes>();
+    //    writeSocket(test_connection_out);
+    write_socket(&test_connection_out, sizeof(SocketCodes));
+    //    test_connection_in = readSocket<SocketCodes>();
+    read_socket(&test_connection_in, sizeof(SocketCodes));
 
     if (isServer())
     {
@@ -485,9 +485,13 @@ AspherixCoSimSocket::~AspherixCoSimSocket()
 {
     try
     {
-        writeSocket(SocketCodes::close_connection);
-        SocketCodes msg_received = readSocket<SocketCodes>();
-        assert(msg_received == SocketCodes::close_connection);
+        // writeSocket(SocketCodes::close_connection);
+        // SocketCodes msg = readSocket<SocketCodes>();
+        SocketCodes msg = SocketCodes::close_connection;
+        write_socket(&msg, sizeof(SocketCodes));
+        read_socket(&msg, sizeof(SocketCodes));
+
+        assert(msg == SocketCodes::close_connection);
         closeSocket();
 
         const std::string src_type = isServer() ? "Server" : "Client";
@@ -872,7 +876,6 @@ size_t AspherixCoSimSocket::readFieldList()
         const auto field = readField();
         addField(field);
     }
-
     return nprops;
 }
 
@@ -930,6 +933,20 @@ void AspherixCoSimSocket::exchangeDomain(bool active, double* limits)
     }
 }
 
+void AspherixCoSimSocket::readData(size_t& dataSize, char*& data)
+{
+    read_socket(&dataSize, sizeof(size_t)); // read dataSize
+    data = new char[dataSize];
+    read_socket(data, dataSize); // read data
+}
+
+void AspherixCoSimSocket::writeData(const size_t& dataSize, char* const& data)
+{
+    write_socket(&dataSize, sizeof(size_t));
+    write_socket(data, dataSize);
+}
+
+/*
 std::vector<char> AspherixCoSimSocket::readData() const
 {
     size_t vector_size;
@@ -939,23 +956,55 @@ std::vector<char> AspherixCoSimSocket::readData() const
     read_socket(byte_vector.data(), vector_size);
     return byte_vector;
 }
+*/
 
 void AspherixCoSimSocket::writeField(const CoSimField& field)
 {
     const auto byte_vector = field.toByteVector();
     const auto vector_size = byte_vector.size();
 
-    writeSocket(vector_size);
-    writeSocket(byte_vector);
+    /*
+        writeSocket(vector_size);
+        writeSocket(byte_vector);
+    */
+    write_socket(&vector_size, sizeof(size_t));
+    write_socket(byte_vector.data(), vector_size);
+    /*    const size_t field_byte_size = field.byteLength();
+        write_socket(&field_byte_size, sizeof(size_t));
+        write_socket(byteArray.c_str(), byteArray.size());*/
 }
 
 CoSimField AspherixCoSimSocket::readField()
 {
-    const size_t vector_size = readSocket<size_t>();
-    std::vector<char> byte_vector;
-    byte_vector = readSocket<std::vector<char>>(vector_size);
-    return CoSimField(byte_vector);
+    size_t field_size;
+    read_socket(&field_size, sizeof(size_t));
+    char* byte_array = new char[field_size];
+    read_socket(byte_array, field_size);
+
+    auto field = CoSimField(byte_array);
+    delete[] byte_array;
+    return field;
+
+    // const size_t vector_size = readSocket<size_t>();
+    // std::vector<char> byte_vector;
+    ////byte_vector.reserve(vector_size);
+    // byte_vector = readSocket<std::vector<char>>(vector_size);
+    // return CoSimField(byte_vector);
 }
+
+/*
+CoSimField AspherixCoSimSocket::readField2()
+{
+//    size_t field_size;
+//    read_socket(&field_size, sizeof(size_t));
+//    char* byteArray = new char[field_size];
+//    read_socket(byteArray, field_size);
+    const size_t vector_size = readSocket<size_t>();
+    char* char_data = new char[vector_size];
+    read_socket(char_data, vector_size);
+    return CoSimField(char_data);
+}
+*/
 
 void AspherixCoSimSocket::writeString(const std::string& str)
 {
@@ -973,12 +1022,6 @@ std::string AspherixCoSimSocket::readString()
     const std::string result = byte_array;
     delete[] byte_array;
     return result;
-}
-
-void AspherixCoSimSocket::writeData(const size_t& dataSize, const char*& data)
-{
-    write_socket(&dataSize, sizeof(size_t));
-    write_socket(data, dataSize);
 }
 
 void AspherixCoSimSocket::closeSocket() const

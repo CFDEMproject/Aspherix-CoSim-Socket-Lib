@@ -54,8 +54,8 @@ class AspherixCoSimSocket {
 public:
     enum class Mode
     {
-        kServer,
-        kClient
+        kClient,
+        kServer
     };
 
 private:
@@ -67,21 +67,8 @@ private:
     int sockfd_;
     int insockfd_;
     Mode mode_;
-    /*
-        int nbytesInt_;
-        int nbytesScalar_;
-        int nbytesVector_;
-        int nbytesVector2D_;
-        int nbytesQuaternion_;
-    */
     int rcvBytesPerParticle_;
     int sndBytesPerParticle_;
-    /*
-        std::vector<int> pushBytesPerPropList_;
-        std::vector<int> pushCumOffsetPerProperty_;
-        std::vector<int> pullBytesPerPropList_;
-        std::vector<int> pullCumOffsetPerProperty_;
-    */
     std::vector<CoSimField> push_field_list_;
     std::vector<CoSimField> pull_field_list_;
 
@@ -136,30 +123,15 @@ public:
     void buildBytePattern();
     void exchangeStatus(SocketCodes statusSend, SocketCodes statusExpect);
     void exchangeDomain(bool active, double* limits);
-    std::vector<char> readData() const;
-    void writeData(const size_t& dataSize, const char*& data);
+
+    void readData(size_t& dataSize, char*& data);
+    void writeData(const size_t& dataSize, char* const& data);
     void closeSocket() const;
 
     // Access Functions
     inline int get_rcvBytesPerParticle() { return rcvBytesPerParticle_; }
-    //    inline void set_rcvBytesPerParticle(int var){rcvBytesPerParticle_=var;}
 
     inline int get_sndBytesPerParticle() { return sndBytesPerParticle_; }
-    //    inline void set_sndBytesPerParticle(int var){sndBytesPerParticle_=var;}
-    /*
-        inline std::vector<int> get_pushBytesPerPropList(){return pushBytesPerPropList_;}
-        inline void set_pushBytesPerPropList(std::vector<int> var){pushBytesPerPropList_=var;}
-
-        inline std::vector<int> get_pushCumOffsetPerProperty(){return pushCumOffsetPerProperty_;}
-        inline void set_pushCumOffsetPerProperty(std::vector<int>
-       var){pushCumOffsetPerProperty_=var;}
-
-        inline std::vector<int> get_pullBytesPerPropList(){return pullBytesPerPropList_;}
-        inline void set_pullBytesPerPropList(std::vector<int> var){pullBytesPerPropList_=var;}
-
-    inline std::vector<int> get_pullCumOffsetPerProperty(){return pullCumOffsetPerProperty_;}
-    inline void set_pullCumOffsetPerProperty(std::vector<int> var){pullCumOffsetPerProperty_=var;}
-*/
     inline void addField(const CoSimField& field)
     {
         field.isCommStylePush() ? push_field_list_.push_back(field)
@@ -171,10 +143,6 @@ public:
 
     void printTime();
 };
-
-#ifdef __INCLUDE_PRIVATE_SOCKET__
-#include "aspherix_cosim_socket_I.h"
-#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
