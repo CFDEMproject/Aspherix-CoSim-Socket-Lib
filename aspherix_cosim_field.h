@@ -238,11 +238,21 @@ auto data_length() const
 auto comm() const
 { return comm_; };
 
+auto index() const
+{ return index_; };
+
 auto offset() const
 { return offset_; };
 
 auto object() const
 { return object_; };
+
+auto info() const
+{
+    const std::string comm_style = comm() == CommStyle::Push ? "push" : "pull";
+    return std::string("name : ") + name() + " [ " + toString(type()) + " " + toString(object())
+                     + " data of length " + std::to_string(data_length()) + " -- " + comm_style + "]";
+}
 
 private:
     std::string name_;

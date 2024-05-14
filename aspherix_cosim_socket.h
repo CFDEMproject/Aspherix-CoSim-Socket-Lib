@@ -105,10 +105,6 @@ public:
     ~AspherixCoSimSocket();
 
     // Member Functions
-    template <typename T> T readSocket(size_t size = sizeof(T)) const;
-
-    template <typename T> int writeSocket(const T& data) const;
-
     void read_socket(void* const buf, const size_t size) const;
     void write_socket(const void* const buf, const size_t size) const;
     void sendProperties();
@@ -138,8 +134,14 @@ public:
                                 : pull_field_list_.push_back(field);
     }
 
-    inline std::vector<CoSimField> getSendFieldList() { return push_field_list_; }
-    inline std::vector<CoSimField> getRecvFieldList() { return pull_field_list_; }
+    inline std::vector<CoSimField> getSendFieldList()
+    {
+        return isServer() ? push_field_list_ : pull_field_list_;
+    }
+    inline std::vector<CoSimField> getRecvFieldList()
+    {
+        return isServer() ? pull_field_list_ : push_field_list_;
+    }
 
     void printTime();
 };

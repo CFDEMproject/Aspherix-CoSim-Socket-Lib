@@ -831,14 +831,14 @@ void AspherixCoSimSocket::sendProperties()
 {
     // send number of push (from DEM to CFD) properties
     const auto nprops_push = writeFieldList(push_field_list_);
-    std::cout << "    send number of push (from DEM to CFD) properties - done." << std::endl;
+    std::cout << "    send " << nprops_push << " properties (DEM -> CFD communication) - done." << std::endl;
 
     // send number of push (from DEM to CFD) properties
     const auto nprops_pull = writeFieldList(pull_field_list_);
-    std::cout << "    send number of pull (from DEM to CFD) properties - done." << std::endl;
+    std::cout << "    send " << nprops_pull << " properties (CFD -> DEM communication) - done." << std::endl;
 
     // send push (from DEM to CFD) names and types
-    std::cout << "    send push (from DEM to CFD) names and types ..." << std::endl;
+//    std::cout << "    send push (from DEM to CFD) names and types ..." << std::endl;
 }
 
 size_t AspherixCoSimSocket::writeFieldList(const std::vector<CoSimField>& field_list)
@@ -861,7 +861,7 @@ size_t AspherixCoSimSocket::recvProperties()
 
     // send number of push (from DEM to CFD) properties
     const auto nprops_pull = readFieldList();
-    std::cout << "    " << nprops_pull << " push properties received" << std::endl;
+    std::cout << "    " << nprops_pull << " pull properties received" << std::endl;
 
     return nprops_push + nprops_pull;
 }
