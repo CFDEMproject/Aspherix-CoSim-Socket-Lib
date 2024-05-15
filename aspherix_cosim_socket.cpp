@@ -981,7 +981,7 @@ CoSimField AspherixCoSimSocket::readField()
     char* byte_array = new char[field_size];
     read_socket(byte_array, field_size);
 
-    auto field = CoSimField(byte_array);
+    auto field = CoSimField(field_size, byte_array);
     delete[] byte_array;
     return field;
 

@@ -32,8 +32,8 @@ enum class DataObject
 
 enum class CommStyle
 {
-    Pull = 0,
-    Push = 1
+    Pull = 0,   // client to server (CFD to DEM)
+    Push = 1    // server to client (DEM to CFD)
 };
 
 #endif
@@ -62,9 +62,9 @@ public:
     // legacy CoSimField constructor
     CoSimField(const std::string &name, const std::string &type, const DataObject &object, const bool pull);
 
-    CoSimField(const std::vector<char> &byte_vector)
+    CoSimField(const int size, const char* byte_array)
     {
-        fromByteVector(byte_vector);
+        fromByteVector(size, byte_array);
     }
 
     size_t length() const
@@ -143,40 +143,40 @@ public:
         return res;
     }*/
 
-    void fromByteVector(const std::vector<char> &byte_vector)
+    void fromByteVector(const int size, const char* byte_array)
     {
         size_t offset = 0;
 
-        for (int i = 0; byte_vector[i] != '\0'; ++i)
-            name_ += byte_vector[i];
+        for (int i = 0; byte_array[i] != '\0'; ++i)
+            name_ += byte_array[i];
         name_[ name_.size()+1 ] = '\0';
         offset += name_.size()+1;
 
-        std::vector<char> temp( &byte_vector[offset], &byte_vector[offset + sizeof( DataType )] );
+        std::vector<char> temp( &byte_array[offset], &byte_array[offset + sizeof( DataType )] );
         type_ = *reinterpret_cast<DataType*>(temp.data());
         offset += sizeof( DataType );
 
-        temp = { &byte_vector[offset], &byte_vector[offset + sizeof( size_t )] };
+        temp = { &byte_array[offset], &byte_array[offset + sizeof( size_t )] };
         data_length_ = *reinterpret_cast<size_t*>(temp.data());
         offset += sizeof( size_t );
 
-        temp = { &byte_vector[offset], &byte_vector[offset + sizeof( DataObject )] };
+        temp = { &byte_array[offset], &byte_array[offset + sizeof( DataObject )] };
         object_ = *reinterpret_cast<DataObject*>(temp.data());
         offset += sizeof( DataObject );
 
-        temp = { &byte_vector[offset], &byte_vector[offset + sizeof( CommStyle )] };
+        temp = { &byte_array[offset], &byte_array[offset + sizeof( CommStyle )] };
         comm_ = *reinterpret_cast<CommStyle*>(temp.data());
         offset += sizeof( CommStyle );
 
-        temp = { &byte_vector[offset], &byte_vector[offset + sizeof( size_t )] };
+        temp = { &byte_array[offset], &byte_array[offset + sizeof( size_t )] };
         offset_ = *reinterpret_cast<size_t*>(temp.data());
         offset += sizeof( size_t );
 
-        temp = { &byte_vector[offset], &byte_vector[offset + sizeof( int )] };
+        temp = { &byte_array[offset], &byte_array[offset + sizeof( int )] };
         index_ = *reinterpret_cast<int*>(temp.data());
         offset += sizeof( int );
 
-        assert(offset == byte_vector.size());
+        assert(offset == size);
     }
 
     size_t dataTypeSize() const

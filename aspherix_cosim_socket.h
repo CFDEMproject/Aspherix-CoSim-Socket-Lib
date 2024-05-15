@@ -26,6 +26,7 @@ SourceFiles
 #ifndef ASPHERIX_COSIM_SOCKET_H
 #define ASPHERIX_COSIM_SOCKET_H
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -49,19 +50,24 @@ enum class SocketCodes
                            Class AspherixCoSimSocket Declaration
 \*---------------------------------------------------------------------------*/
 
-class AspherixCoSimSocket {
+class AspherixCoSimSocket
+{
 
 public:
-    enum class Mode
-    {
-        kClient,
-        kServer
-    };
+
+enum class Mode
+{
+    kClient,
+    kServer
+};
 
 private:
-    bool isServer() const { return mode_ == Mode::kServer; };
 
-    bool isClient() const { return mode_ == Mode::kClient; };
+    bool isServer() const
+    { return mode_ == Mode::kServer; };
+
+    bool isClient() const
+    { return mode_ == Mode::kClient; };
 
     // private data
     int sockfd_;
@@ -79,8 +85,7 @@ private:
     void error_all(const std::string msg) const;
     size_t readNumberFromFile(const std::string path);
     void deleteFile(const std::string path);
-    void readPortFile(int proc, const std::string path, size_t& port, int& found,
-                      int n_tries_max = 1);
+    void readPortFile(int proc, const std::string path,size_t& port,int& found,int n_tries_max=1);
     int tryConnect(struct sockaddr_in);
     void selectTO(int& sock);
 
@@ -97,23 +102,30 @@ public:
     // Constructors
 
     //- Construct from components
-    AspherixCoSimSocket(Mode mode, const size_t port_offset, std::string customPortFilePath = "",
-                        int waitSeconds = 1, int ntries_connect_ = 10, bool verbose = false,
-                        bool keepPortOffsetFile = false);
+    AspherixCoSimSocket
+    (
+        Mode mode,
+        const size_t port_offset,
+        std::string customPortFilePath="",
+        int  waitSeconds=1,
+        int  ntries_connect_=10,
+        bool verbose=false,
+        bool keepPortOffsetFile=false
+    );
 
     // Destructor
     ~AspherixCoSimSocket();
 
     // Member Functions
-    void read_socket(void* const buf, const size_t size) const;
-    void write_socket(const void* const buf, const size_t size) const;
+    void read_socket(void *const buf, const size_t size) const;
+    void write_socket(const void *const buf, const size_t size) const;
     void sendProperties();
     size_t recvProperties();
-    size_t writeFieldList(const std::vector<CoSimField>& field_list);
+    size_t writeFieldList(const std::vector<CoSimField> &field_list);
     size_t readFieldList();
-    void writeField(const CoSimField& field);
+    void writeField(const CoSimField &field);
     CoSimField readField();
-    void writeString(const std::string& str);
+    void writeString(const std::string &str);
     std::string readString();
 
     void buildBytePattern();
@@ -121,27 +133,21 @@ public:
     void exchangeDomain(bool active, double* limits);
 
     void readData(size_t& dataSize, char*& data);
-    void writeData(const size_t& dataSize, char* const& data);
+    void writeData(const size_t& dataSize, char *const &data);
     void closeSocket() const;
 
     // Access Functions
-    inline int get_rcvBytesPerParticle() { return rcvBytesPerParticle_; }
+    inline int get_rcvBytesPerParticle(){return rcvBytesPerParticle_;}
 
-    inline int get_sndBytesPerParticle() { return sndBytesPerParticle_; }
-    inline void addField(const CoSimField& field)
+    inline int get_sndBytesPerParticle(){return sndBytesPerParticle_;}
+    inline void addField(const CoSimField &field)
     {
-        field.isCommStylePush() ? push_field_list_.push_back(field)
-                                : pull_field_list_.push_back(field);
+        std::cout << "     adding field to list: " << field.info() << "\n";
+        field.isCommStylePush() ? push_field_list_.push_back(field) : pull_field_list_.push_back(field);
     }
 
-    inline std::vector<CoSimField> getSendFieldList()
-    {
-        return isServer() ? push_field_list_ : pull_field_list_;
-    }
-    inline std::vector<CoSimField> getRecvFieldList()
-    {
-        return isServer() ? pull_field_list_ : push_field_list_;
-    }
+    inline std::vector<CoSimField> getSendFieldList() { return isServer() ? push_field_list_ : pull_field_list_; }
+    inline std::vector<CoSimField> getRecvFieldList() { return isServer() ? pull_field_list_ : push_field_list_; }
 
     void printTime();
 };
