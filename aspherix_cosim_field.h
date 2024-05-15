@@ -62,7 +62,7 @@ public:
     // legacy CoSimField constructor
     CoSimField(const std::string &name, const std::string &type, const DataObject &object, const bool pull);
 
-    CoSimField(const int size, const char* byte_array)
+    CoSimField(const size_t size, const char* byte_array)
     {
         fromByteVector(size, byte_array);
     }
@@ -143,7 +143,7 @@ public:
         return res;
     }*/
 
-    void fromByteVector(const int size, const char* byte_array)
+    void fromByteVector(const size_t size, const char* byte_array)
     {
         size_t offset = 0;
 
