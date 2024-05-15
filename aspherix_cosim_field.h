@@ -41,7 +41,7 @@ enum class CommStyle
 typedef std::map<DataType, std::string> DataTypeMap;
 typedef std::map<DataObject, std::string> DataObjectMap;
 
-typedef std::map<DataType, const char*> DataTypeMap2;
+//typedef std::map<DataType, const char*> DataTypeMap2;
 
 /*
 constexpr std::map<DataType, const char*> data_type_map =
@@ -167,6 +167,11 @@ public:
         temp = { &byte_array[offset], &byte_array[offset + sizeof( CommStyle )] };
         comm_ = *reinterpret_cast<CommStyle*>(temp.data());
         offset += sizeof( CommStyle );
+
+        if (comm_ == CommStyle::Pull)
+            comm_ = CommStyle::Push;
+        else if (comm_ == CommStyle::Push)
+            comm_ = CommStyle::Pull;
 
         temp = { &byte_array[offset], &byte_array[offset + sizeof( size_t )] };
         offset_ = *reinterpret_cast<size_t*>(temp.data());
