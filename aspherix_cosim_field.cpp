@@ -27,6 +27,7 @@ CoSimField::CoSimField(const std::string &name, const DataType &type,
            const CommStyle &comm) :
     name_(name),
     type_(type),
+    type_string_(""),
     data_length_(data_length),
     object_(object),
     comm_(comm),
@@ -35,7 +36,8 @@ CoSimField::CoSimField(const std::string &name, const DataType &type,
 {};
 
 CoSimField::CoSimField(const std::string &name, const std::string &type, const DataObject &object, const bool pull):
-    type_(DataType::Scalar),
+    type_(DataType::kDouble),
+    type_string_(type),
     data_length_(1),
     object_(DataObject::Particle),
     offset_(0),
@@ -46,7 +48,7 @@ CoSimField::CoSimField(const std::string &name, const std::string &type, const D
     {
         if ( name == "body" || name == "id" || name == "type" || name == "shapetype" || // particle
              name == "nrigid" || name == "clumptype" || name == "id_multisphere" )      // MS
-            type_ = DataType::Integer;
+            type_ = DataType::kInteger;
         data_length_ = 1;
     }
     else if (type.find("vector-") != npos)
@@ -65,6 +67,39 @@ CoSimField::CoSimField(const std::string &name, const std::string &type, const D
     else
         object_ = DataObject::Boundary;
 }
+
+void CoSimField::setTypeString()
+{
+    switch (data_length_)
+    {
+        case 1:
+            type_string_ = "scalar-";
+            break;
+        case 2:
+            type_string_ = "vector2D-";
+            break;
+        case 3:
+            type_string_ = "vector-";
+            break;
+        case 4:
+            type_string_ = "quaternion-";
+            break;
+    }
+
+    switch (object_)
+    {
+        case DataObject::Particle:
+            type_string_ += "atom";
+            break;
+        case DataObject::Multisphere:
+            type_string_ += "multisphere";
+            break;
+        case DataObject::PointCloud:
+            type_string_ += "pointcloud";
+            break;
+    }
+}
+
 /*
 int CoSimField::length() const
 {

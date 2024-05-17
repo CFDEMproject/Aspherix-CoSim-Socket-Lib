@@ -10,16 +10,18 @@
 #include <typeinfo>
 #include <vector>
 
-static constexpr size_t NBYTES_INT = 4; //sizeof(int);
-static constexpr size_t NBYTES_SCALAR = 8; //sizeof(double);
+//static constexpr size_t NBYTES_INT = sizeof(int);
+//static constexpr size_t NBYTES_SCALAR = sizeof(double);
 
 #ifndef ASPHERIX_COSIM_ENUM_H
 #define ASPHERIX_COSIM_ENUM_H
 
 enum class DataType
 {
-    Integer,
-    Scalar
+    kNone,
+    kBool,
+    kInteger,
+    kDouble
 };
 
 enum class DataObject
@@ -27,13 +29,14 @@ enum class DataObject
     Particle,
     Multisphere,    // MS / concave
     PointCloud,     // similar to MS?
-    Boundary
+    Boundary,
+    Global
 };
 
 enum class CommStyle
 {
-    Pull = 0,   // client to server (CFD to DEM)
-    Push = 1    // server to client (DEM to CFD)
+    Pull = 0,   // receive
+    Push = 1    // send
 };
 
 #endif
@@ -55,7 +58,7 @@ class CoSimField
 {
 
 public:
-    CoSimField(const std::string &name, const DataType &type = DataType::Scalar,
+    CoSimField(const std::string &name, const DataType &type = DataType::kDouble,
                const size_t data_length = 1, const DataObject &object = DataObject::Particle,
                const CommStyle &comm = CommStyle::Pull);
 
@@ -65,6 +68,7 @@ public:
     CoSimField(const size_t size, const char* byte_array)
     {
         fromByteVector(size, byte_array);
+        setTypeString();
     }
 
     size_t length() const
@@ -188,10 +192,13 @@ public:
     {
         switch (type_)
         {
-            case DataType::Integer:
-                return NBYTES_INT * data_length_;
-            case DataType::Scalar:
-                return NBYTES_SCALAR * data_length_;
+            case DataType::kInteger:
+                return data_length_ * sizeof(int);
+            case DataType::kDouble:
+                return data_length_ * sizeof(double);
+            case DataType::kBool:
+                return data_length_ * sizeof(bool);
+            case DataType::kNone:
             default:
                 return 0;
         }
@@ -216,8 +223,10 @@ public:
 static std::string toString(const DataType value)
 {
     static DataTypeMap to_string;
-    to_string[DataType::Integer] = "integer";
-    to_string[DataType::Scalar] = "scalar";
+    to_string[DataType::kInteger] = "integer";
+    to_string[DataType::kDouble] = "double";
+    to_string[DataType::kNone] = "none";
+    to_string[DataType::kBool] = "bool";
     return to_string.at(value);
 }
 
@@ -259,9 +268,15 @@ auto info() const
                      + " data of length " + std::to_string(data_length()) + " -- " + comm_style + "]";
 }
 
+void setTypeString();
+
+std::string getTypeString() const
+{ return type_string_; }
+
 private:
     std::string name_;
     DataType type_;
+    std::string type_string_;
     size_t data_length_;
     DataObject object_;
     CommStyle comm_;
