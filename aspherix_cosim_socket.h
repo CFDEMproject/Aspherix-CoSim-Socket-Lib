@@ -146,8 +146,8 @@ public:
         field.isCommStylePush() ? push_field_list_.push_back(field) : pull_field_list_.push_back(field);
     }
 
-    inline std::vector<CoSimField> getSendFieldList() { return isServer() ? push_field_list_ : pull_field_list_; }
-    inline std::vector<CoSimField> getRecvFieldList() { return isServer() ? pull_field_list_ : push_field_list_; }
+    inline std::vector<CoSimField> getSendFieldList() { return push_field_list_; }
+    inline std::vector<CoSimField> getRecvFieldList() { return pull_field_list_; }
 
     void printTime();
 };

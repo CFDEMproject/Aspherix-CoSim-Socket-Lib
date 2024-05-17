@@ -35,11 +35,13 @@ CoSimField::CoSimField(const std::string &name, const DataType &type,
     index_(-1)
 {};
 
-CoSimField::CoSimField(const std::string &name, const std::string &type, const DataObject &object, const bool pull):
+CoSimField::CoSimField(const std::string &name, const std::string &type, const bool pull):
+    name_(name),
     type_(DataType::kDouble),
     type_string_(type),
     data_length_(1),
-    object_(DataObject::Particle),
+    object_(DataObject::kUndefined),
+    comm_(),
     offset_(0),
     index_(-1)
 {
@@ -59,13 +61,15 @@ CoSimField::CoSimField(const std::string &name, const std::string &type, const D
         data_length_ = 4;
 
     if (type.find("-atom") != npos)
-        object_ = DataObject::Particle;
+        object_ = DataObject::kParticle;
     else if (type.find("-multisphere") != npos)
-        object_ = DataObject::Multisphere;
+        object_ = DataObject::kMultisphere;
     else if (type.find("-pointcloud") != npos)
-        object_ = DataObject::PointCloud;
-    else
-        object_ = DataObject::Boundary;
+        object_ = DataObject::kPointCloud;
+    else if (type.find("-boundary") != npos)
+        object_ = DataObject::kBoundary;
+
+    comm_ = pull ? CommStyle::kPull : CommStyle::kPush;
 }
 
 void CoSimField::setTypeString()
@@ -88,14 +92,24 @@ void CoSimField::setTypeString()
 
     switch (object_)
     {
-        case DataObject::Particle:
+        case DataObject::kParticle:
             type_string_ += "atom";
             break;
-        case DataObject::Multisphere:
+        case DataObject::kMultisphere:
             type_string_ += "multisphere";
             break;
-        case DataObject::PointCloud:
+        case DataObject::kPointCloud:
             type_string_ += "pointcloud";
+            break;
+        case DataObject::kGlobal:
+            type_string_ += "global";
+            break;
+        case DataObject::kBoundary:
+            type_string_ += "boundary";
+            break;
+        case DataObject::kUndefined:
+        default:
+            type_string_ += "undefined";
             break;
     }
 }

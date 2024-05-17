@@ -10,9 +10,6 @@
 #include <typeinfo>
 #include <vector>
 
-//static constexpr size_t NBYTES_INT = sizeof(int);
-//static constexpr size_t NBYTES_SCALAR = sizeof(double);
-
 #ifndef ASPHERIX_COSIM_ENUM_H
 #define ASPHERIX_COSIM_ENUM_H
 
@@ -26,17 +23,18 @@ enum class DataType
 
 enum class DataObject
 {
-    Particle,
-    Multisphere,    // MS / concave
-    PointCloud,     // similar to MS?
-    Boundary,
-    Global
+    kUndefined,
+    kParticle,
+    kMultisphere,    // MS / concave
+    kPointCloud,
+    kBoundary,
+    kGlobal
 };
 
 enum class CommStyle
 {
-    Pull = 0,   // receive
-    Push = 1    // send
+    kPull = 0,   // receive
+    kPush = 1    // send
 };
 
 #endif
@@ -44,26 +42,16 @@ enum class CommStyle
 typedef std::map<DataType, std::string> DataTypeMap;
 typedef std::map<DataObject, std::string> DataObjectMap;
 
-//typedef std::map<DataType, const char*> DataTypeMap2;
-
-/*
-constexpr std::map<DataType, const char*> data_type_map =
-    {
-        { DataType::Integer, "integer" },
-        { DataType::Scalar, "scalar" }
-    };
-*/
-
 class CoSimField
 {
 
 public:
     CoSimField(const std::string &name, const DataType &type = DataType::kDouble,
-               const size_t data_length = 1, const DataObject &object = DataObject::Particle,
-               const CommStyle &comm = CommStyle::Pull);
+               const size_t data_length = 1, const DataObject &object = DataObject::kUndefined,
+               const CommStyle &comm = CommStyle::kPull);
 
     // legacy CoSimField constructor
-    CoSimField(const std::string &name, const std::string &type, const DataObject &object, const bool pull);
+    CoSimField(const std::string &name, const std::string &type, const bool pull);
 
     CoSimField(const size_t size, const char* byte_array)
     {
@@ -77,31 +65,6 @@ public:
                sizeof(type_) + sizeof(data_length_) + sizeof(object_) + sizeof(comm_) + sizeof(offset_) + sizeof(index_);
     }
 
-    // Helper function to write bytes into the byte array
-    template<typename T>
-    int writeBytes(char* arr, int pos, const T& value) const
-    {
-        for (auto i = 0; i < data_length_; ++i)
-            
-        memcpy(arr + pos, &value, sizeof(value));
-        return sizeof(value);
-    }
-/*
-    std::string readBytes(const char *arr, size_t num_bytes = -1) const
-    {
-        if (num_bytes == -1)
-        {
-            std::string result;
-            for (int i = 0; charArray[i] != '\0'; ++i)
-            {
-                result += charArray[i];
-            }
-            return result;
-        }
-        else
-            
-    }
-*/
     std::vector<char> toByteVector() const
     {
         std::vector<char> result;
@@ -172,10 +135,10 @@ public:
         comm_ = *reinterpret_cast<CommStyle*>(temp.data());
         offset += sizeof( CommStyle );
 
-        if (comm_ == CommStyle::Pull)
-            comm_ = CommStyle::Push;
-        else if (comm_ == CommStyle::Push)
-            comm_ = CommStyle::Pull;
+        if (comm_ == CommStyle::kPull)
+            comm_ = CommStyle::kPush;
+        else if (comm_ == CommStyle::kPush)
+            comm_ = CommStyle::kPull;
 
         temp = { &byte_array[offset], &byte_array[offset + sizeof( size_t )] };
         offset_ = *reinterpret_cast<size_t*>(temp.data());
@@ -205,10 +168,10 @@ public:
     }
 
     bool isCommStylePush() const
-    { return comm_ == CommStyle::Push; }
+    { return comm_ == CommStyle::kPush; }
 
     bool isCommStylePull() const
-    { return comm_ == CommStyle::Pull; }
+    { return comm_ == CommStyle::kPull; }
 
     void setOffset(const size_t offset)
     {
@@ -224,19 +187,21 @@ static std::string toString(const DataType value)
 {
     static DataTypeMap to_string;
     to_string[DataType::kInteger] = "integer";
-    to_string[DataType::kDouble] = "double";
-    to_string[DataType::kNone] = "none";
-    to_string[DataType::kBool] = "bool";
+    to_string[DataType::kDouble]  = "double";
+    to_string[DataType::kNone]    = "none";
+    to_string[DataType::kBool]    = "bool";
     return to_string.at(value);
 }
 
 static std::string toString(const DataObject value)
 {
     static DataObjectMap to_string;
-    to_string[DataObject::Particle]    = "Particle";
-    to_string[DataObject::Multisphere] = "Multisphere";
-    to_string[DataObject::PointCloud]  = "PointCloud";
-    to_string[DataObject::Boundary]    = "Boundary";
+    to_string[DataObject::kParticle]    = "Particle";
+    to_string[DataObject::kMultisphere] = "Multisphere";
+    to_string[DataObject::kPointCloud]  = "PointCloud";
+    to_string[DataObject::kBoundary]    = "Boundary";
+    to_string[DataObject::kGlobal]      = "Global";
+    to_string[DataObject::kUndefined]   = "Undefined";
     return to_string.at(value);
 }
 
@@ -263,7 +228,7 @@ auto object() const
 
 auto info() const
 {
-    const std::string comm_style = comm() == CommStyle::Push ? "push" : "pull";
+    const std::string comm_style = comm() == CommStyle::kPush ? "push" : "pull";
     return std::string("name : ") + name() + " [ " + toString(type()) + " " + toString(object())
                      + " data of length " + std::to_string(data_length()) + " -- " + comm_style + "]";
 }
