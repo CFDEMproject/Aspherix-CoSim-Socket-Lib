@@ -233,6 +233,18 @@ auto info() const
                      + " data of length " + std::to_string(data_length()) + " -- " + comm_style + "]";
 }
 
+inline bool isParticleData() const
+{ return object_ == DataObject::kParticle; }
+
+inline bool isMultisphereData() const
+{ return object_ == DataObject::kMultisphere; }
+
+inline bool isScalarData() const
+{ return data_length_ == 1; }
+
+inline bool isArrayData() const
+{ return data_length_ > 1; }
+
 void setTypeString();
 
 std::string getTypeString() const
