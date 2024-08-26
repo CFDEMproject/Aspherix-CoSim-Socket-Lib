@@ -53,7 +53,7 @@ enum class SocketCodes
 class AspherixCoSimSocket {
 
 public:
-    static constexpr int kBasePort = 49152;
+    static constexpr size_t kBasePort = 49152;
 
     enum class Mode
     {
@@ -67,6 +67,7 @@ private:
     bool isClient() const { return mode_ == Mode::kClient; };
 
     // private data
+    bool mutually_closed_sockets_;
     int sockfd_;
     int insockfd_;
     Mode mode_;
@@ -81,7 +82,8 @@ private:
     void error_one(const std::string msg) const;
     void error_all(const std::string msg) const;
     size_t readNumberFromFile(const std::string path);
-    void deleteFile(const std::string path);
+    void deletePortFile() const;
+    void writePortFile(const std::string& port_file_path, size_t port_offset);
     void readPortFile(int proc, const std::string path, size_t& port, int& found,
                       int n_tries_max = 1);
     int tryConnect(struct sockaddr_in);
@@ -90,7 +92,7 @@ private:
     int waitSeconds_;
     int ntries_connect_;
 
-    int base_port_;
+    const size_t base_port_;
     int port_;
     const bool verbose_;
     const bool keepPortOffsetFile_;
@@ -102,14 +104,16 @@ public:
 
     //- Construct from components
     AspherixCoSimSocket(Mode mode, const size_t port_offset, std::string customPortFilePath = "",
-                        int base_port = kBasePort, int waitSeconds = 1, int ntries_connect_ = 10,
+                        size_t base_port = kBasePort, int waitSeconds = 1, int ntries_connect_ = 10,
                         bool verbose = false, bool keepPortOffsetFile = false);
 
     // Destructor
     ~AspherixCoSimSocket();
 
     // Member Functions
+    template <typename T> void read_socket(T* const value);
     void read_socket(void* const buf, const size_t size) const;
+    template <typename T> void write_socket(const T* const value);
     void write_socket(const void* const buf, const size_t size) const;
     void sendProperties();
     size_t recvProperties();
@@ -120,13 +124,23 @@ public:
     void writeString(const std::string& str);
     std::string readString();
 
+    void writeBool(bool& flag) { write_socket(&flag, sizeof(bool)); };
+    void readBool(bool& flag) { read_socket(&flag, sizeof(bool)); };
+
     void buildBytePattern();
-    void exchangeStatus(SocketCodes statusSend, SocketCodes statusExpect);
+    void exchangeStatus(SocketCodes statusSend = SocketCodes::ping,
+                        SocketCodes statusExpect = SocketCodes::ping);
     void exchangeDomain(bool active, double* limits);
 
     void readData(size_t& dataSize, char*& data);
     void writeData(const size_t& dataSize, char* const& data);
-    void closeSocket() const;
+    void closeSocket(const bool mutual = true) const;
+    void mutually_closed_sockets(bool flag) { mutually_closed_sockets_ = flag; }
+    bool mutually_closed_sockets() const { return mutually_closed_sockets_; }
+
+    bool hasOpenSocket() const { return (insockfd_ > 0 || sockfd_ > 0); };
+
+    auto getBasePort() const noexcept { return base_port_; }
 
     // Access Functions
     inline int get_rcvBytesPerParticle() { return rcvBytesPerParticle_; }
@@ -142,9 +156,18 @@ public:
     inline std::vector<CoSimField> getSendFieldList() { return push_field_list_; }
     inline std::vector<CoSimField> getRecvFieldList() { return pull_field_list_; }
 
-    void printTime();
+    void printTime() const;
 };
 
+template <typename T> void AspherixCoSimSocket::read_socket(T* const value)
+{
+    read_socket(static_cast<void* const>(value), sizeof(T));
+}
+
+template <typename T> void AspherixCoSimSocket::write_socket(const T* const value)
+{
+    write_socket(static_cast<const void* const>(value), sizeof(T));
+}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif

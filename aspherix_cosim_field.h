@@ -8,6 +8,7 @@
 #include <map>
 #include <string>
 #include <typeinfo>
+#include <variant>
 #include <vector>
 
 #ifndef ASPHERIX_COSIM_ENUM_H
@@ -34,10 +35,23 @@ enum class DataObject
 enum class CommStyle
 {
     kPull = 0,   // receive
-    kPush = 1    // send
+    kPush = 1,   // send
+    kServerToClient = 2,
+    kClientToServer = 3,
+    kDEMtoCFD = 2,
+    kCFDtoDEM = 3
 };
 
 #endif
+
+using ValueType = std::variant<bool, int, double, std::string>;
+
+struct NamedValue
+{
+    std::string name;
+    ValueType value;
+    CommStyle comm;
+};
 
 typedef std::map<DataType, std::string> DataTypeMap;
 typedef std::map<DataObject, std::string> DataObjectMap;
@@ -97,18 +111,6 @@ public:
 
         return result;
     }
-    /*
-        std::copy(name.c_str())
-        
-        char *res = new char[length()];
-        int pos = 0;
-        pos += writeBytes(res, pos, name.c_str());     //string version should append zero char after string
-        pos += writeBytes(res, pos, type);
-        pos += writeBytes(res, pos, data_length);
-        pos += writeBytes(res, pos, object);
-        pos += writeBytes(res, pos, comm);
-        return res;
-    }*/
 
     void fromByteVector(const size_t size, const char* byte_array)
     {
@@ -259,7 +261,8 @@ private:
     CommStyle comm_;
     size_t offset_;
     int index_;
-};
+
+}; // class CoSimField
 
 #endif
 #endif

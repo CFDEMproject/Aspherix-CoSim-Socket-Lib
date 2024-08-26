@@ -53,7 +53,9 @@ if(STATIC_LIBSTDCPP)
 endif()
 
 #=============================================================
-FIND_PACKAGE(MPI)
+if (NOT MPI_FOUND)
+  FIND_PACKAGE(MPI)
+endif()
 
 IF(MPI_FOUND)
   INCLUDE_DIRECTORIES(${MPI_INCLUDE_PATH})
