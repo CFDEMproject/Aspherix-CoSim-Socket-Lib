@@ -34,8 +34,7 @@ SourceFiles
 
 enum class SocketCodes
 {
-    welcome_server,
-    welcome_client,
+    welcome,
     close_connection,
     start_exchange,
     bounding_box_update,
@@ -54,6 +53,8 @@ class AspherixCoSimSocket {
 
 public:
     static constexpr size_t kBasePort = 49152;
+    static constexpr size_t kConnectionTryLimit = 10;
+    static constexpr size_t kWaitSeconds = 1;
 
     enum class Mode
     {
@@ -61,11 +62,10 @@ public:
         kServer
     };
 
-private:
     bool isServer() const { return mode_ == Mode::kServer; };
-
     bool isClient() const { return mode_ == Mode::kClient; };
 
+private:
     // private data
     bool mutually_closed_sockets_;
     int sockfd_;
@@ -103,9 +103,10 @@ public:
     // Constructors
 
     //- Construct from components
-    AspherixCoSimSocket(Mode mode, const size_t port_offset, std::string customPortFilePath = "",
-                        size_t base_port = kBasePort, int waitSeconds = 1, int ntries_connect_ = 10,
-                        bool verbose = false, bool keepPortOffsetFile = false);
+    AspherixCoSimSocket(const Mode& mode, size_t port_offset,
+                        const std::string& custom_port_file_path = "", size_t base_port = kBasePort,
+                        int wait_seconds = kWaitSeconds, int ntries_connect = kConnectionTryLimit,
+                        bool verbose = false, bool keep_port_offset_file = false);
 
     // Destructor
     ~AspherixCoSimSocket();
@@ -114,7 +115,10 @@ public:
     template <typename T> void read_socket(T* const value);
     void read_socket(void* const buf, const size_t size) const;
     template <typename T> void write_socket(const T* const value);
-    void write_socket(const void* const buf, const size_t size) const;
+    void write_socket(const void* const buf, size_t size) const;
+
+    void syncData(std::vector<char> client_to_server, std::vector<char> server_to_client) {}
+
     void sendProperties();
     size_t recvProperties();
     size_t writeFieldList(const std::vector<CoSimField>& field_list);
@@ -128,11 +132,13 @@ public:
     void readBool(bool& flag) { read_socket(&flag, sizeof(bool)); };
 
     void buildBytePattern();
-    void exchangeStatus(SocketCodes statusSend = SocketCodes::ping,
-                        SocketCodes statusExpect = SocketCodes::ping);
+    SocketCodes exchangeStatus(SocketCodes statusSend = SocketCodes::ping,
+                               SocketCodes statusExpect = SocketCodes::ping);
     void exchangeDomain(bool active, double* limits);
 
     void readData(size_t& dataSize, char*& data);
+    std::vector<char> readData() const;
+    void writeData(const std::vector<char>& data) const;
     void writeData(const size_t& dataSize, char* const& data);
     void closeSocket(const bool mutual = true) const;
     void mutually_closed_sockets(bool flag) { mutually_closed_sockets_ = flag; }
