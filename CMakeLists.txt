@@ -1,15 +1,12 @@
+cmake_minimum_required(VERSION 3.13)
 
-cmake_minimum_required(VERSION 3.10)
-if(POLICY CMP0077)
-  cmake_policy(SET CMP0077 NEW)
-endif()
-
-project(aspherix_cosim_socket CXX)
+project(aspherix_cosim_socket VERSION 1.0.0 LANGUAGES CXX)
 
 SET(CMAKE_CXX_STANDARD 17)
 
 SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # setting this so that there are no issues with open foam
 OPTION(SKIP_MPICXX "Skip mpicxx (recommended for OpenFOAM/Coupling compilations)" ON)
 if (${SKIP_MPICXX})
@@ -31,7 +28,24 @@ if (STATIC_LIBRARY)
 else()
     add_library(aspherix_cosim_socket SHARED ${SOURCE})
 endif()
-set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_socket.h aspherix_cosim_field.h)
+# file(GLOB_RECURSE COSIM_SOCKET_HEADERS_FULL_PATH aspherix*.h)
+# set(COSIM_SOCKET_HEADERS "")
+# foreach(HDR ${COSIM_SOCKET_HEADERS_FULL_PATH})
+#     get_filename_component(HDR_NAME ${HDR} NAME)
+#     list(APPEND COSIM_SOCKET_HEADERS ${HDR_NAME})
+# endforeach()
+# message(STATUS "CoSim headers : ${COSIM_SOCKET_HEADERS}")
+# set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER ${COSIM_SOCKET_HEADERS})
+set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_settings.h aspherix_cosim_socket.h)
+# set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_socket.h)
+
+# include(../cmake/functions.cmake)
+
+# print_info(aspherix_cosim_socket "aspherix_cosim_socket")
+        # get_target_property(prop_value aspherix_cosim_socket INCLUDE_DIRECTORIES)
+        # if(prop_value)
+        #     message(STATUS "  INCLUDE_DIRECTORIES: ${prop_value}")
+        # endif()
 
 OPTION(STATIC_LIBSTDCPP "Build with statically linked C++ standard library" OFF)
 
@@ -86,4 +100,22 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/aspherix_cosim_socketConfig.cmake")
     install(FILES compileLib.sh DESTINATION include/aspherix_cosim_socket)
     install(FILES aspherix_cosim_socketConfig.cmake DESTINATION share/aspherix_cosim_socket)
     install(FILES license.txt DESTINATION share/aspherix_cosim_socket)
+endif()
+
+# Add Google test
+option(COSIM_UNIT_TESTING "Enable unit testing for CoSimSocket" OFF)
+if(COSIM_UNIT_TESTING)
+  include(FetchContent)
+  FetchContent_GetProperties(googletest)
+  if(NOT googletest_POPULATED)
+    FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.zip DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    if(WIN32)
+      # For Windows: Prevent overriding the parent project's compiler/linker settings
+      set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    endif()
+    FetchContent_MakeAvailable(googletest)
+  endif()
+
+  enable_testing()
+  add_subdirectory(test)
 endif()

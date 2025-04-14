@@ -1,116 +1,115 @@
+// #include "aspherix_cosim_interface.h"
 #ifndef _WIN32
 
 #include "aspherix_cosim_field.h"
 
-//typedef std::map<DataType, std::string> DataTypeMap;
-
-/*
-DataTypeMap DataTypeToString =
+namespace CoSimSocket
 {
-    { DataType::Integer, "Integer" },
-    { DataType::Scalar , "Scalar"  }
-};
-
-//typedef std::map<DataObject, std::string> DataObjectMap;
-
-DataObjectMap DataObjectToString =
-{
-    { DataObject::Particle   , "Particle"    },
-    { DataObject::Multisphere, "Multisphere" },
-    { DataObject::PointCloud , "PointCloud"  },
-    { DataObject::Boundary   , "Boundary"    }
-};
-*/
-
-CoSimField::CoSimField(const std::string &name, const DataType &type,
-           const size_t data_length, const DataObject &object,
-           const CommStyle &comm) :
-    name_(name),
+CoSimField::CoSimField(std::string name, const DataType& type, const size_t data_length,
+                       const DataObject& object, const SyncDirection& direction) :
+    name_(std::move(name)),
     type_(type),
-    type_string_(""),
     data_length_(data_length),
     object_(object),
-    comm_(comm),
+    direction_(direction),
     offset_(0),
     index_(-1)
-{};
+{
+    setTypeString();
+};
 
-CoSimField::CoSimField(const std::string &name, const std::string &type, const bool pull):
-    name_(name),
+CoSimField::CoSimField(std::string name, std::string type, const bool client_to_server) :
+    name_(std::move(name)),
     type_(DataType::kDouble),
-    type_string_(type),
+    type_string_(std::move(type)),
     data_length_(1),
     object_(DataObject::kUndefined),
-    comm_(),
+    direction_(),
     offset_(0),
     index_(-1)
 {
     const auto npos = std::string::npos;
     if (type.find("scalar-") != npos)
     {
-        if ( name == "body" || name == "id" || name == "type" || name == "shapetype" || // particle
-             name == "nrigid" || name == "clumptype" || name == "id_multisphere" )      // MS
+        if (name == "body" || name == "id" || name == "type" || name == "shapetype" || // particle
+            name == "nrigid" || name == "clumptype" || name == "id_multisphere")       // MS
+        {
             type_ = DataType::kInteger;
+        }
         data_length_ = 1;
     }
     else if (type.find("vector-") != npos)
+    {
         data_length_ = 3;
+    }
     else if (type.find("vector2D-") != npos)
+    {
         data_length_ = 2;
+    }
     else if (type.find("quaternion-") != npos)
+    {
         data_length_ = 4;
+    }
 
     if (type.find("-atom") != npos)
+    {
         object_ = DataObject::kParticle;
+    }
     else if (type.find("-multisphere") != npos)
+    {
         object_ = DataObject::kMultisphere;
+    }
     else if (type.find("-pointcloud") != npos)
+    {
         object_ = DataObject::kPointCloud;
+    }
     else if (type.find("-boundary") != npos)
+    {
         object_ = DataObject::kBoundary;
+    }
 
-    comm_ = pull ? CommStyle::kPull : CommStyle::kPush;
+    direction_ = client_to_server ? SyncDirection::kClientToServer : SyncDirection::kServerToClient;
 }
 
 void CoSimField::setTypeString()
 {
     switch (data_length_)
     {
-        case 1:
-            type_string_ = "scalar-";
-            break;
-        case 2:
-            type_string_ = "vector2D-";
-            break;
-        case 3:
-            type_string_ = "vector-";
-            break;
-        case 4:
-            type_string_ = "quaternion-";
-            break;
+    case 1:
+        type_string_ = "scalar-";
+        break;
+    case 2:
+        type_string_ = "vector2D-";
+        break;
+    case 3:
+        type_string_ = "vector-";
+        break;
+    case 4:
+        type_string_ = "quaternion-";
+        break;
     }
 
     switch (object_)
     {
-        case DataObject::kParticle:
-            type_string_ += "atom";
-            break;
-        case DataObject::kMultisphere:
-            type_string_ += "multisphere";
-            break;
-        case DataObject::kPointCloud:
-            type_string_ += "pointcloud";
-            break;
-        case DataObject::kGlobal:
-            type_string_ += "global";
-            break;
-        case DataObject::kBoundary:
-            type_string_ += "boundary";
-            break;
-        case DataObject::kUndefined:
-        default:
-            type_string_ += "undefined";
-            break;
+    case DataObject::kParticle:
+        type_string_ += "atom";
+        break;
+    case DataObject::kMultisphere:
+        type_string_ += "multisphere";
+        break;
+    case DataObject::kPointCloud:
+        type_string_ += "pointcloud";
+        break;
+    case DataObject::kGlobal:
+        type_string_ += "global";
+        break;
+    case DataObject::kBoundary:
+        type_string_ += "boundary";
+        break;
+    case DataObject::kUndefined:
+    default:
+        type_string_ += "undefined";
+        break;
     }
 }
 
@@ -133,12 +132,9 @@ char* toByteArray() const
 {
     char *res = new char[length()];
     int pos = 0;
-    pos += writeBytes(res, pos, name.c_str());     //string version should append zero char after string
-    pos += writeBytes(res, pos, type);
-    pos += writeBytes(res, pos, data_length);
-    pos += writeBytes(res, pos, object);
-    pos += writeBytes(res, pos, comm);
-    return res;
+    pos += writeBytes(res, pos, name.c_str());     //string version should append zero char after
+string pos += writeBytes(res, pos, type); pos += writeBytes(res, pos, data_length); pos +=
+writeBytes(res, pos, object); pos += writeBytes(res, pos, comm); return res;
 }
 
 size_t dataTypeSize() const
@@ -166,5 +162,7 @@ void setIndex(const int index_in)
 
 };
 */
+
+} // namespace CoSimSocket
 
 #endif

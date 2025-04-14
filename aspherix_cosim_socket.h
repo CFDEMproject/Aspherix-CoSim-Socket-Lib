@@ -26,24 +26,60 @@ SourceFiles
 #ifndef ASPHERIX_COSIM_SOCKET_H
 #define ASPHERIX_COSIM_SOCKET_H
 
+#include <cstdint>
 #include <iostream>
 #include <string>
+#include <type_traits>
 #include <vector>
+#include <utility>
 
-#include "aspherix_cosim_field.h"
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-enum class SocketCodes
+namespace CoSimSocket
 {
-    welcome,
-    close_connection,
-    start_exchange,
-    bounding_box_update,
-    read_a_number,
-    read_a_word,
-    ping,
-    invalid,
-    request_quit
+
+enum class SocketCodes : std::uint8_t
+{
+    kWelcome,
+    kCloseConnection,
+    kStartExchange,
+    kBoundingBoxUpdate,
+    kReadANumber,
+    kReadString,
+    kPing,
+    kInvalid,
+    kRequestQuit,
+    kUndefined
 };
+
+enum class SocketStatus : std::uint8_t
+{
+    kInactive,
+    kActive
+};
+
+enum class Mode : std::uint8_t
+{
+    kClient,
+    kServer
+};
+
+enum class SyncDirection : std::uint8_t
+{
+    kClientToServer,
+    kServerToClient,
+    kUndefined,
+    kSend,
+    kRecv
+};
+
+constexpr std::size_t kBasePort           = 49152;
+constexpr std::size_t kConnectionTryLimit = 10;
+constexpr std::size_t kWaitSeconds        = 0;
+constexpr std::size_t kNumberOfAttempts   = 10;
 
 /*---------------------------------------------------------------------------*\
                            Class AspherixCoSimSocket Declaration
@@ -52,18 +88,8 @@ enum class SocketCodes
 class AspherixCoSimSocket {
 
 public:
-    static constexpr size_t kBasePort = 49152;
-    static constexpr size_t kConnectionTryLimit = 10;
-    static constexpr size_t kWaitSeconds = 1;
-
-    enum class Mode
-    {
-        kClient,
-        kServer
-    };
-
-    bool isServer() const { return mode_ == Mode::kServer; };
-    bool isClient() const { return mode_ == Mode::kClient; };
+    [[nodiscard]] bool isServer() const { return mode_ == Mode::kServer; };
+    [[nodiscard]] bool isClient() const { return mode_ == Mode::kClient; };
 
 private:
     // private data
@@ -71,110 +97,146 @@ private:
     int sockfd_;
     int insockfd_;
     Mode mode_;
-    int rcvBytesPerParticle_;
-    int sndBytesPerParticle_;
-    std::vector<CoSimField> push_field_list_;
-    std::vector<CoSimField> pull_field_list_;
 
     int portRangeReserved_;
 
     // private member functions
-    void error_one(const std::string msg) const;
-    void error_all(const std::string msg) const;
-    size_t readNumberFromFile(const std::string path);
+    // Member Functions
+    void read_socket(void* buf, std::size_t size);
+    void write_socket(const void* buf, std::size_t size);
+
+    template <typename T> void write_socket(const T* const value);
+    template <typename T> void read_socket(T* const value);
+
+    void error(const std::string& msg);
+    std::size_t readNumberFromFile(const std::string& path, std::size_t max_attempts);
     void deletePortFile() const;
-    void writePortFile(const std::string& port_file_path, size_t port_offset);
-    void readPortFile(int proc, const std::string path, size_t& port, int& found,
-                      int n_tries_max = 1);
-    int tryConnect(struct sockaddr_in);
+    void writePortFile(const std::string& port_file_path, std::size_t port_offset);
+    std::pair<std::size_t, bool> readPortFile(const std::string& path,
+                                              std::size_t number_of_attempts = 1);
+    // int tryConnect(struct ::sockaddr_in);
     void selectTO(int& sock);
 
-    int waitSeconds_;
+    int wait_seconds_;
     int ntries_connect_;
 
-    const size_t base_port_;
-    int port_;
-    const bool verbose_;
-    const bool keepPortOffsetFile_;
+    std::size_t base_port_;
+    std::size_t port_;
+    bool verbose_;
+    bool keepPortOffsetFile_;
     std::string portFileName_;
-    const size_t processNumber_;
+    std::size_t process_number_;
+    SocketStatus status_;
 
 public:
     // Constructors
 
     //- Construct from components
-    AspherixCoSimSocket(const Mode& mode, size_t port_offset,
-                        const std::string& custom_port_file_path = "", size_t base_port = kBasePort,
-                        int wait_seconds = kWaitSeconds, int ntries_connect = kConnectionTryLimit,
-                        bool verbose = false, bool keep_port_offset_file = false);
+    AspherixCoSimSocket(const Mode& mode, std::size_t process_number,
+                        const std::string& custom_port_file_path = "",
+                        std::size_t base_port = kBasePort, int wait_seconds = kWaitSeconds,
+                        std::size_t ntries_connect = kConnectionTryLimit, bool verbose = false,
+                        bool keep_port_offset_file = false);
+
+    AspherixCoSimSocket(const AspherixCoSimSocket&)            = default;
+    AspherixCoSimSocket(AspherixCoSimSocket&&)                 = delete;
+    AspherixCoSimSocket& operator=(const AspherixCoSimSocket&) = default;
+    AspherixCoSimSocket& operator=(AspherixCoSimSocket&&)      = delete;
 
     // Destructor
     ~AspherixCoSimSocket();
 
-    // Member Functions
-    template <typename T> void read_socket(T* const value);
-    void read_socket(void* const buf, const size_t size) const;
-    template <typename T> void write_socket(const T* const value);
-    void write_socket(const void* const buf, size_t size) const;
-
-    void syncData(std::vector<char> client_to_server, std::vector<char> server_to_client) {}
-
-    void sendProperties();
-    size_t recvProperties();
-    size_t writeFieldList(const std::vector<CoSimField>& field_list);
-    size_t readFieldList();
-    void writeField(const CoSimField& field);
-    CoSimField readField();
     void writeString(const std::string& str);
     std::string readString();
 
-    void writeBool(bool& flag) { write_socket(&flag, sizeof(bool)); };
-    void readBool(bool& flag) { read_socket(&flag, sizeof(bool)); };
-
-    void buildBytePattern();
-    SocketCodes exchangeStatus(SocketCodes statusSend = SocketCodes::ping,
-                               SocketCodes statusExpect = SocketCodes::ping);
-    void exchangeDomain(bool active, double* limits);
-
-    void readData(size_t& dataSize, char*& data);
-    std::vector<char> readData() const;
-    void writeData(const std::vector<char>& data) const;
-    void writeData(const size_t& dataSize, char* const& data);
-    void closeSocket(const bool mutual = true) const;
-    void mutually_closed_sockets(bool flag) { mutually_closed_sockets_ = flag; }
-    bool mutually_closed_sockets() const { return mutually_closed_sockets_; }
-
-    bool hasOpenSocket() const { return (insockfd_ > 0 || sockfd_ > 0); };
-
-    auto getBasePort() const noexcept { return base_port_; }
-
-    // Access Functions
-    inline int get_rcvBytesPerParticle() { return rcvBytesPerParticle_; }
-
-    inline int get_sndBytesPerParticle() { return sndBytesPerParticle_; }
-    inline void addField(const CoSimField& field)
+    void writeBool(bool flag) { write_socket(&flag, sizeof(bool)); };
+    // inline bool readBool();
+    bool readBool()
     {
-        std::cout << "     adding field to list: " << field.info() << "\n";
-        field.isCommStylePush() ? push_field_list_.push_back(field)
-                                : pull_field_list_.push_back(field);
-    }
+        bool flag = false;
+        read_socket(&flag, sizeof(bool));
+        return flag;
+    };
 
-    inline std::vector<CoSimField> getSendFieldList() { return push_field_list_; }
-    inline std::vector<CoSimField> getRecvFieldList() { return pull_field_list_; }
+    template <typename T> int writeValue(const T& object);
+    template <typename T> auto readValue(std::size_t size = sizeof(T)) -> T;
+
+    template <typename T>
+    int exchangeValue(T& object, SyncDirection direction, std::size_t size = sizeof(T));
+
+    // // Primary template for exchangeValue (not defined)
+    // template <SyncDirection D, typename T, typename = void> struct exchangeValueImpl;
+
+    // // Specialization for kSend (const T&)
+    // template <typename T>
+    // struct exchangeValueImpl<SyncDirection::kSend, T> {
+    //     void execute(const T& object) {
+    //         std::cout << "Exchanging value for sending: " << object << std::endl;
+    //         // Implement send logic here
+    //     }
+    // };
+
+    // // Specialization for kReceive (T by value)
+    // template <typename T>
+    // struct exchangeValueImpl<SyncDirection::kReceive, T> {
+    //     void execute(T object) { // Takes T by value
+    //         std::cout << "Exchanging value for receiving: " << object << std::endl;
+    //         // Implement receive logic here
+    //     }
+    // };
+
+    // Primary template for exchangeValue (not defined)
+    template <SyncDirection D, typename T, typename = void> struct exchangeValueImpl;
+
+    // Public interface to exchangeValue
+    // template <SyncDirection D, typename T> void exchangeValue(T& object);
+    // template <SyncDirection D, typename T> void exchangeValue(const T& object);
+    template <SyncDirection D, typename T>
+    typename std::enable_if<D == SyncDirection::kSend, void>::type exchangeValue(const T& object);
+
+    template <SyncDirection D, typename T>
+    typename std::enable_if<D == SyncDirection::kRecv, void>::type exchangeValue(T& object);
+    // {
+    //     exchangeValueImpl<D, T> impl;          // Create an instance
+    //     impl.execute(std::forward<T>(object)); // Call the instance method
+    // }
+
+    // template <CoSimSocket::SyncDirection D, typename T>
+    // typename std::enable_if_t<D == CoSimSocket::SyncDirection::kRecv, void>::type exchangeValue(
+    //     T& object);
+    // template <CoSimSocket::SyncDirection D, typename T>
+    // typename std::enable_if_t<D == CoSimSocket::SyncDirection::kSend, void>::type exchangeValue(
+    //     const T& object);
+    // template <typename T> int exchangeValue(T& object);
+    // template <typename T> int exchangeValue(const T& object);
+    // template <CoSimSocket::SyncDirection D, typename T> void exchangeValue(const T& object);
+
+    SocketCodes exchangeStatus(SocketCodes status_send   = SocketCodes::kPing,
+                               SocketCodes status_expect = SocketCodes::kUndefined);
+    // void exchangeDomain(bool active, double* limits);
+
+    // void readData(std::size_t& dataSize, char*& data);
+    std::vector<char> readData();
+    void writeData(const std::vector<char>& data);
+    // void writeData(const std::size_t& dataSize, char* const& data);
+
+    void closeSocket(bool mutual = true);
+    // void mutually_closed_sockets(bool flag) { mutually_closed_sockets_ = flag; }
+    // bool mutually_closed_sockets() const { return mutually_closed_sockets_; }
+
+    [[nodiscard]] bool hasOpenSocket() const { return (insockfd_ > 0 || sockfd_ > 0); };
+
+    [[nodiscard]] auto getBasePort() const noexcept { return base_port_; }
 
     void printTime() const;
+
+    void showBufferSizeInfo();
 };
 
-template <typename T> void AspherixCoSimSocket::read_socket(T* const value)
-{
-    read_socket(static_cast<void* const>(value), sizeof(T));
-}
-
-template <typename T> void AspherixCoSimSocket::write_socket(const T* const value)
-{
-    write_socket(static_cast<const void* const>(value), sizeof(T));
-}
+#include "aspherix_cosim_socket_I.h"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // namespace CoSimSocket
 
 #endif
 #endif
