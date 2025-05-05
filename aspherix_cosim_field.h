@@ -10,6 +10,9 @@
 #include <cassert>
 #include <cstring>
 #include <map>
+#if __cplusplus >= 202002L
+#include <span>
+#endif
 #include <string>
 #include <typeinfo>
 #include <utility>
@@ -19,12 +22,18 @@
 namespace CoSimSocket
 {
 
-using DataTypeMap   = std::map<DataType, std::string>;
+using DataTypeMap = std::map<DataType, std::string>;
 using DataObjectMap = std::map<DataObject, std::string>;
 
 class CoSimField : public CoSimInterface {
 
 public:
+    enum class DataMode : std::uint8_t
+    {
+        kSum,
+        kAverage
+    };
+
     CoSimField(std::shared_ptr<AspherixCoSimSocket> socket = nullptr) :
         CoSimInterface(std::move(socket)),
         type_(DataType::kDouble),
@@ -32,7 +41,8 @@ public:
         object_(DataObject::kUndefined),
         direction_(SyncDirection::kUndefined),
         offset_(0),
-        index_(-1) {};
+        index_(-1),
+        ptr_(nullptr) {};
 
     // legacy CoSimField constructor
     CoSimField(std::string name, std::string type, bool client_to_server);
@@ -43,11 +53,11 @@ public:
         setTypeString();
     }
 
-    CoSimField(const CoSimField&)            = default;
-    CoSimField(CoSimField&&)                 = default;
-    ~CoSimField()                            = default;
+    CoSimField(const CoSimField&) = default;
+    CoSimField(CoSimField&&) = default;
+    ~CoSimField() = default;
     CoSimField& operator=(const CoSimField&) = default;
-    CoSimField& operator=(CoSimField&&)      = default;
+    CoSimField& operator=(CoSimField&&) = default;
     CoSimField(std::string name, const DataType& type = DataType::kDouble,
                std::size_t data_length = 1, const DataObject& object = DataObject::kUndefined,
                const SyncDirection& direction = SyncDirection::kUndefined);
@@ -119,7 +129,7 @@ public:
         data_length_ = *reinterpret_cast<std::size_t*>(temp.data());
         offset_current += sizeof(std::size_t);
 
-        temp    = {&byte_array[offset_current], &byte_array[offset_current + sizeof(DataObject)]};
+        temp = {&byte_array[offset_current], &byte_array[offset_current + sizeof(DataObject)]};
         object_ = *reinterpret_cast<DataObject*>(temp.data());
         offset_current += sizeof(DataObject);
 
@@ -128,11 +138,11 @@ public:
         std::memcpy(&direction_, temp.data(), sizeof(SyncDirection));
         offset_current += sizeof(SyncDirection);
 
-        temp    = {&byte_array[offset_current], &byte_array[offset_current + sizeof(std::size_t)]};
+        temp = {&byte_array[offset_current], &byte_array[offset_current + sizeof(std::size_t)]};
         offset_ = *reinterpret_cast<std::size_t*>(temp.data());
         offset_current += sizeof(std::size_t);
 
-        temp   = {&byte_array[offset_current], &byte_array[offset_current + sizeof(int)]};
+        temp = {&byte_array[offset_current], &byte_array[offset_current + sizeof(int)]};
         index_ = *reinterpret_cast<int*>(temp.data());
         offset_current += sizeof(int);
 
@@ -175,21 +185,21 @@ public:
     {
         static DataTypeMap to_string;
         to_string[DataType::kInteger] = "integer";
-        to_string[DataType::kDouble]  = "double";
-        to_string[DataType::kNone]    = "none";
-        to_string[DataType::kBool]    = "bool";
+        to_string[DataType::kDouble] = "double";
+        to_string[DataType::kNone] = "none";
+        to_string[DataType::kBool] = "bool";
         return to_string.at(value);
     }
 
     static std::string toString(const DataObject value)
     {
         static DataObjectMap to_string;
-        to_string[DataObject::kParticle]    = "particle";
+        to_string[DataObject::kParticle] = "particle";
         to_string[DataObject::kMultisphere] = "multisphere";
-        to_string[DataObject::kPointCloud]  = "pointCloud";
-        to_string[DataObject::kBoundary]    = "boundary";
-        to_string[DataObject::kGlobal]      = "global";
-        to_string[DataObject::kUndefined]   = "undefined";
+        to_string[DataObject::kPointCloud] = "pointCloud";
+        to_string[DataObject::kBoundary] = "boundary";
+        to_string[DataObject::kGlobal] = "global";
+        to_string[DataObject::kUndefined] = "undefined";
         return to_string.at(value);
     }
 
@@ -230,6 +240,23 @@ public:
 
     [[nodiscard]] std::string getTypeString() const { return type_string_; }
 
+    void setPtr(void* const ptr) { ptr_ = ptr; }
+    [[nodiscard]] void* getPtr() const { return ptr_; }
+
+    [[nodiscard]] char* getPtr(const int index) const
+    {
+        return static_cast<char*>(ptr_ + index * dataTypeSize());
+    }
+
+#if __cplusplus >= 202002L
+    std::size_t processValue(const int index, std::span<char> property_data)
+    {
+        auto* data = static_cast<char*>(ptr_ + index * dataTypeSize());
+        memcpy(data, property_data.data(), dataTypeSize());
+        return dataTypeSize();
+    }
+#endif
+
 private:
     std::string name_;
     DataType type_;
@@ -239,6 +266,7 @@ private:
     SyncDirection direction_;
     std::size_t offset_;
     int index_;
+    void* ptr_;
 
 }; // class CoSimField
 
