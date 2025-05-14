@@ -151,21 +151,23 @@ public:
         assert((offset_current - offset) == length());
     }
 
-    [[nodiscard]] std::size_t dataTypeSize() const
+    [[nodiscard]] std::size_t dataSizeOne() const
     {
         switch (type_)
         {
         case DataType::kInteger:
-            return data_length_ * sizeof(int);
+            return sizeof(int);
         case DataType::kDouble:
-            return data_length_ * sizeof(double);
+            return sizeof(double);
         case DataType::kBool:
-            return data_length_ * sizeof(bool);
+            return sizeof(bool);
         case DataType::kNone:
         default:
             return 0;
         }
     }
+
+    [[nodiscard]] std::size_t dataTypeSize() const { return data_length_ * dataSizeOne(); }
 
     [[nodiscard]] bool isServerToClient() const
     {
@@ -245,13 +247,18 @@ public:
 
     [[nodiscard]] char* getPtr(const int index) const
     {
-        return static_cast<char*>(ptr_ + index * dataTypeSize());
+        return static_cast<char*>(ptr_) + index * dataTypeSize();
     }
 
 #if __cplusplus >= 202002L
+    void setData(std::span<char> source)
+    {
+        std::memcpy(static_cast<char*>(ptr_), source.data(), source.size());
+    }
+
     std::size_t processValue(const int index, std::span<char> property_data)
     {
-        auto* data = static_cast<char*>(ptr_ + index * dataTypeSize());
+        char* data = getPtr(index);
         memcpy(data, property_data.data(), dataTypeSize());
         return dataTypeSize();
     }
