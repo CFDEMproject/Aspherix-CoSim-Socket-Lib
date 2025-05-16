@@ -7,6 +7,9 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#if __cplusplus >= 201703L
+#include <cstddef>
+#endif
 #if __cplusplus >= 202002L
 #include <span>
 #endif
@@ -14,6 +17,16 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#if __cplusplus < 201703L
+// std::void_t is only available in C++17 and later
+namespace std{
+template <typename...>
+using void_t = void;
+
+enum class byte : std::uint8_t {};
+}
+#endif
 
 namespace CoSimSocket
 {
@@ -97,7 +110,7 @@ public:
             std::cout << "There is no socket assigned.\n";
         }
 
-        socket_->exchangeStatus(SocketCodes::kPing, SocketCodes::kPing);
+        socket_->exchangeStatus(SocketCodes::kStartExchange, SocketCodes::kStartExchange);
 
         if (socket_->isServer())
         {
@@ -120,7 +133,7 @@ public:
             fromByteVector(data_to_recv, 0, SyncDirection::kServerToClient);
         }
 
-        socket_->exchangeStatus(SocketCodes::kPing, SocketCodes::kPing);
+        socket_->exchangeStatus(SocketCodes::kStopExchange, SocketCodes::kStopExchange);
     }
 
 protected:

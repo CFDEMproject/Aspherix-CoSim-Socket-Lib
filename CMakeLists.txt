@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 project(aspherix_cosim_socket VERSION 1.0.0 LANGUAGES CXX)
 
-SET(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_STANDARD 20)
 
 SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -19,7 +19,7 @@ endif()
 #set verbose Makefile to double check mpicxx
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(SOURCE aspherix_cosim_socket.cpp aspherix_cosim_field.cpp)
+set(SOURCE aspherix_cosim_socket.cpp aspherix_cosim_field.cpp aspherix_cosim_settings.cpp)
 
 OPTION(STATIC_LIBRARY "Compile as static library" OFF)
 
@@ -28,24 +28,8 @@ if (STATIC_LIBRARY)
 else()
     add_library(aspherix_cosim_socket SHARED ${SOURCE})
 endif()
-# file(GLOB_RECURSE COSIM_SOCKET_HEADERS_FULL_PATH aspherix*.h)
-# set(COSIM_SOCKET_HEADERS "")
-# foreach(HDR ${COSIM_SOCKET_HEADERS_FULL_PATH})
-#     get_filename_component(HDR_NAME ${HDR} NAME)
-#     list(APPEND COSIM_SOCKET_HEADERS ${HDR_NAME})
-# endforeach()
-# message(STATUS "CoSim headers : ${COSIM_SOCKET_HEADERS}")
-# set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER ${COSIM_SOCKET_HEADERS})
-set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_settings.h aspherix_cosim_socket.h)
-# set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_socket.h)
 
-# include(../cmake/functions.cmake)
-
-# print_info(aspherix_cosim_socket "aspherix_cosim_socket")
-        # get_target_property(prop_value aspherix_cosim_socket INCLUDE_DIRECTORIES)
-        # if(prop_value)
-        #     message(STATUS "  INCLUDE_DIRECTORIES: ${prop_value}")
-        # endif()
+set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_settings.h aspherix_cosim_socket.h aspherix_cosim_field.h aspherix_cosim_interface.h)
 
 OPTION(STATIC_LIBSTDCPP "Build with statically linked C++ standard library" OFF)
 

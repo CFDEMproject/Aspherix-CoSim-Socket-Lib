@@ -28,10 +28,11 @@ SourceFiles
 
 #include <cstdint>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <type_traits>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -41,11 +42,14 @@ SourceFiles
 namespace CoSimSocket
 {
 
+class CoSimField;
+
 enum class SocketCodes : std::uint8_t
 {
     kWelcome,
     kCloseConnection,
     kStartExchange,
+    kStopExchange,
     kBoundingBoxUpdate,
     kReadANumber,
     kReadString,
@@ -76,16 +80,20 @@ enum class SyncDirection : std::uint8_t
     kRecv
 };
 
-constexpr std::size_t kBasePort           = 49152;
+constexpr std::size_t kBasePort = 49152;
 constexpr std::size_t kConnectionTryLimit = 10;
-constexpr std::size_t kWaitSeconds        = 0;
-constexpr std::size_t kNumberOfAttempts   = 10;
+constexpr std::size_t kWaitSeconds = 0;
+constexpr std::size_t kNumberOfAttempts = 10;
 
 /*---------------------------------------------------------------------------*\
                            Class AspherixCoSimSocket Declaration
 \*---------------------------------------------------------------------------*/
 
 class AspherixCoSimSocket {
+
+private:
+    class Impl;
+    std::unique_ptr<Impl> pimpl_;
 
 public:
     [[nodiscard]] bool isServer() const { return mode_ == Mode::kServer; };
@@ -138,10 +146,10 @@ public:
                         std::size_t ntries_connect = kConnectionTryLimit, bool verbose = false,
                         bool keep_port_offset_file = false);
 
-    AspherixCoSimSocket(const AspherixCoSimSocket&)            = default;
-    AspherixCoSimSocket(AspherixCoSimSocket&&)                 = delete;
+    AspherixCoSimSocket(const AspherixCoSimSocket&) = default;
+    AspherixCoSimSocket(AspherixCoSimSocket&&) = delete;
     AspherixCoSimSocket& operator=(const AspherixCoSimSocket&) = default;
-    AspherixCoSimSocket& operator=(AspherixCoSimSocket&&)      = delete;
+    AspherixCoSimSocket& operator=(AspherixCoSimSocket&&) = delete;
 
     // Destructor
     ~AspherixCoSimSocket();
@@ -211,7 +219,7 @@ public:
     // template <typename T> int exchangeValue(const T& object);
     // template <CoSimSocket::SyncDirection D, typename T> void exchangeValue(const T& object);
 
-    SocketCodes exchangeStatus(SocketCodes status_send   = SocketCodes::kPing,
+    SocketCodes exchangeStatus(SocketCodes status_send = SocketCodes::kPing,
                                SocketCodes status_expect = SocketCodes::kUndefined);
     // void exchangeDomain(bool active, double* limits);
 
@@ -231,10 +239,13 @@ public:
     void printTime() const;
 
     void showBufferSizeInfo();
-};
 
-#include "aspherix_cosim_socket_I.h"
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    void buildBytePattern() {}
+    void sendProperties() {}
+    // std::vector<CoSimField> getSendFieldList() {return
+    // std::vector<CoSimField>();}; std::vector<CoSimField> getRecvFieldList()
+    // {return std::vector<CoSimField>();}
+};
 
 } // namespace CoSimSocket
 

@@ -24,30 +24,51 @@
 #include <sys/socket.h>
 #include <tuple>
 #include <unistd.h>
-
-#if __cplusplus >= 202002L
 #include <format>
-#endif
-
 #include <fstream>
 #include <mpi.h>
 
 namespace CoSimSocket
 {
-// using std::string;
+
+class AspherixCoSimSocket::Impl
+{
+public:
+    Impl(AspherixCoSimSocket& owner) : owner_(owner) {}
+
+    void writeData(const std::span<char> data)
+    {
+        const std::size_t size = data.size();
+        owner_.write_socket(&size, sizeof(std::size_t));
+        if (size > 0)
+        {
+            owner_.write_socket(data.data(), size);
+        }
+    }
+  
+    void writeData(const std::span<double> data)
+    {
+        const std::size_t size = data.size();
+        owner_.write_socket(&size, sizeof(std::size_t));
+        if (size > 0)
+        {
+            owner_.write_socket(data.data(), size);
+        }
+    }
+
+private:
+    AspherixCoSimSocket& owner_;
+};
 
 AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_number,
                                          const std::string& custom_port_file_path,
                                          const std::size_t base_port, int wait_seconds,
                                          const std::size_t ntries_connect, bool verbose,
                                          bool keep_port_offset_file) :
+    pimpl_(std::make_unique<Impl>(*this)),
     sockfd_(0),
     insockfd_(0),
     mode_(mode),
-    // rcvBytesPerParticle_(0),
-    // sndBytesPerParticle_(0),
-    // push_field_list_(),
-    // pull_field_list_(),
     portRangeReserved_(1),
     wait_seconds_(wait_seconds),
     ntries_connect_(ntries_connect),
@@ -87,38 +108,41 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
     std::string port_file_path = cwd + "/" + custom_port_file_path + "/port_offset_"
                                  + std::to_string(process_number) + ".txt";
 
-    if (isServer() && keepPortOffsetFile_)
+    if (isServer())
     {
-        std::tie(port_offset, found_port_file) = readPortFile(port_file_path);
+        if (keepPortOffsetFile_)
+        {
+            std::tie(port_offset, found_port_file) = readPortFile(port_file_path);
 
-        if (found_port_file)
-        {
-            if (portFileName_.empty())
+            if (found_port_file)
             {
-                portFileName_ = port_file_path;
+                if (portFileName_.empty())
+                {
+                    portFileName_ = port_file_path;
+                }
+                printTime();
+                std::cout << "Server: will forcefully attach to port " << std::to_string(port_) << "!"
+                          << '\n';
+                int opt = 1;
+                // Forcefully attaching socket to the port
+                if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) != 0)
+                {
+                    error("Failed setsockopt");
+                }
             }
-            printTime();
-            std::cout << "Server: will forcefully attach to port " << std::to_string(port_) << "!"
-                      << '\n';
-            int opt = 1;
-            // Forcefully attaching socket to the port
-            if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) != 0)
+            else if (!found_port_file && process_number == 0)
             {
-                error("Failed setsockopt");
+                std::cout << "\nDEM could not find port_offset file.\n"
+                          << "   Auto-detecting available ports...\n"
+                          << "*  Find details in the documentation (look for 'Setup a case using "
+                             "socket communication').\n"
+                          << '\n';
             }
         }
-        else if (!found_port_file && process_number == 0)
+        else if (std::filesystem::exists(port_file_path))
         {
-            std::cout << "\nDEM could not find port_offset file.\n"
-                      << "   Auto-detecting available ports...\n"
-                      << "*  Find details in the documentation (look for 'Setup a case using "
-                         "socket communication').\n"
-                      << '\n';
+            std::filesystem::remove(port_file_path);
         }
-    }
-    else if (std::filesystem::exists(port_file_path))
-    {
-        std::filesystem::remove(port_file_path);
     }
     //==================================================
 
@@ -1014,6 +1038,16 @@ void AspherixCoSimSocket::writeData(const std::vector<char>& data)
     {
         write_socket(data.data(), size);
     }
+}
+
+void AspherixCoSimSocket::writeData(const std::size_t& dataSize, char* const& data)
+{
+    pimpl_->writeData(std::span<char>(data, dataSize));
+}
+
+void AspherixCoSimSocket::writeData(const std::size_t& dataSize, double* const& data)
+{
+    pimpl_->writeData(std::span<double>(data, dataSize));
 }
 
 // void AspherixCoSimSocket::writeField(const CoSimField& field)

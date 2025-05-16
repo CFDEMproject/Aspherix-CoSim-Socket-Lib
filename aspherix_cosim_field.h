@@ -2,9 +2,6 @@
 
 #pragma once
 
-// #ifndef ASPHERIX_COSIM_FIELD_H
-// #define ASPHERIX_COSIM_FIELD_H
-
 #include "aspherix_cosim_interface.h"
 
 #include <cassert>
