@@ -50,19 +50,42 @@ template <typename T> void AspherixCoSimSocket::write_socket(const T* const valu
     write_socket(static_cast<const void* const>(value), sizeof(T));
 }
 
+template <typename T> std::vector<T> AspherixCoSimSocket::readData()
+{
+    std::size_t vector_size = 0;
+    read_socket(&vector_size, sizeof(std::size_t));
+    std::vector<T> vector;
+    if (vector_size > 0)
+    {
+        vector.resize(vector_size);
+        read_socket(vector.data(), vector_size * sizeof(T) / sizeof(char));
+    }
+    return vector;
+}
+
+template <typename T> void AspherixCoSimSocket::writeData(const std::vector<T>& data)
+{
+    const std::size_t size = data.size();
+    write_socket(&size, sizeof(std::size_t));
+    if (size > 0)
+    {
+        write_socket(data.data(), size * sizeof(T) / sizeof(char));
+    }
+}
+
 template <typename T> auto AspherixCoSimSocket::readValue(std::size_t size) -> T
 {
     static constexpr bool needs_size = !std::is_trivially_copyable_v<T>;
 
     size_t recv_size = 0;
-    int cur_size     = 0;
+    int cur_size = 0;
 
     if constexpr (needs_size)
     {
-        error("Only trivially copyable datatypes are supported for direct socket communication");
-        size              = readValue<std::size_t>();
+        size = readValue<std::size_t>();
         using ElementType = std::remove_pointer_t<decltype(std::declval<T>().data())>;
-        size              = size * sizeof(ElementType);
+        size = size * sizeof(ElementType);
+        error("Only trivially copyable datatypes are supported for direct socket communication");
     }
 
     std::vector<char> buf;
@@ -106,21 +129,21 @@ template <typename T> int AspherixCoSimSocket::writeValue(const T& object)
 
     if constexpr (needs_size)
     {
-        error("Only trivially copyable datatypes are supported for direct socket communication");
         size = object.size();
         writeValue(size);
         using ElementType = std::remove_pointer_t<decltype(object.data())>;
-        size              = size * sizeof(ElementType);
-        buf               = reinterpret_cast<const char*>(object.data());
+        size = size * sizeof(ElementType);
+        buf = reinterpret_cast<const char*>(object.data());
+        error("Only trivially copyable datatypes are supported for direct socket communication");
     }
     else
     {
         size = sizeof(T);
-        buf  = reinterpret_cast<const char*>(&object);
+        buf = reinterpret_cast<const char*>(&object);
     }
 
     auto send_size = 0;
-    auto cur_size  = 0;
+    auto cur_size = 0;
 
     const auto socket_file_descriptor = isServer() ? insockfd_ : sockfd_;
 

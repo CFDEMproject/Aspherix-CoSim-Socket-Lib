@@ -29,6 +29,7 @@ SourceFiles
 #include <cstdint>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -99,6 +100,9 @@ public:
     [[nodiscard]] bool isServer() const { return mode_ == Mode::kServer; };
     [[nodiscard]] bool isClient() const { return mode_ == Mode::kClient; };
 
+    void read_socket(void* buf, std::size_t size);
+    void write_socket(const void* buf, std::size_t size);
+
 private:
     // private data
     bool mutually_closed_sockets_;
@@ -110,8 +114,6 @@ private:
 
     // private member functions
     // Member Functions
-    void read_socket(void* buf, std::size_t size);
-    void write_socket(const void* buf, std::size_t size);
 
     template <typename T> void write_socket(const T* const value);
     template <typename T> void read_socket(T* const value);
@@ -224,9 +226,19 @@ public:
     // void exchangeDomain(bool active, double* limits);
 
     // void readData(std::size_t& dataSize, char*& data);
-    std::vector<char> readData();
-    void writeData(const std::vector<char>& data);
-    // void writeData(const std::size_t& dataSize, char* const& data);
+    template <typename T> std::vector<T> readData();
+    template <typename T> void writeData(const std::vector<T>& data);
+
+    // std::vector<double> readData();
+    // void writeData(const std::vector<char>& data);
+    // void writeData(const std::vector<double>& data);
+    // void writeData(const std::vector<int>& data);
+    // void writeData(const std::vector<std::size_t>& data);
+
+    void writeData(std::size_t size, char* const& data);
+    void writeData(std::size_t size, double* const& data);
+    void writeData(std::size_t size, int* const& data);
+    void writeData(std::size_t size, std::size_t* const& data);
 
     void closeSocket(bool mutual = true);
     // void mutually_closed_sockets(bool flag) { mutually_closed_sockets_ = flag; }
@@ -246,6 +258,8 @@ public:
     // std::vector<CoSimField>();}; std::vector<CoSimField> getRecvFieldList()
     // {return std::vector<CoSimField>();}
 };
+
+#include "aspherix_cosim_socket_I.h"
 
 } // namespace CoSimSocket
 

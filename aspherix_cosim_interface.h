@@ -20,12 +20,14 @@
 
 #if __cplusplus < 201703L
 // std::void_t is only available in C++17 and later
-namespace std{
-template <typename...>
-using void_t = void;
+namespace std
+{
+template <typename...> using void_t = void;
 
-enum class byte : std::uint8_t {};
-}
+enum class byte : std::uint8_t
+{
+};
+} // namespace std
 #endif
 
 namespace CoSimSocket
@@ -87,17 +89,17 @@ public:
     {
     }
 
-    CoSimInterface()                                 = default;
-    CoSimInterface(const CoSimInterface&)            = default;
-    CoSimInterface(CoSimInterface&&)                 = default;
+    CoSimInterface() = default;
+    CoSimInterface(const CoSimInterface&) = default;
+    CoSimInterface(CoSimInterface&&) = default;
     CoSimInterface& operator=(const CoSimInterface&) = default;
-    CoSimInterface& operator=(CoSimInterface&&)      = default;
-    virtual ~CoSimInterface()                        = default;
+    CoSimInterface& operator=(CoSimInterface&&) = default;
+    virtual ~CoSimInterface() = default;
 
     void setSocket(std::shared_ptr<AspherixCoSimSocket> socket) { socket_ = std::move(socket); }
 
     [[nodiscard]] virtual std::size_t length(
-        const SyncDirection& direction = SyncDirection::kUndefined) const                   = 0;
+        const SyncDirection& direction = SyncDirection::kUndefined) const = 0;
     virtual void fromByteVector(const std::vector<char>& byte_array, std::size_t offset,
                                 const SyncDirection& direction = SyncDirection::kUndefined) = 0;
     [[nodiscard]] virtual std::vector<char> toByteVector(
@@ -119,7 +121,7 @@ public:
             socket_->writeData(data_to_send);
 
             // receive data
-            const auto data_to_recv = socket_->readData();
+            const auto data_to_recv = socket_->readData<char>();
             fromByteVector(data_to_recv, 0, SyncDirection::kClientToServer);
         }
         else
@@ -129,7 +131,7 @@ public:
             socket_->writeData(data_to_send);
 
             // receive data
-            const auto data_to_recv = socket_->readData();
+            const auto data_to_recv = socket_->readData<char>();
             fromByteVector(data_to_recv, 0, SyncDirection::kServerToClient);
         }
 
@@ -209,7 +211,7 @@ template <typename T> void CoSimInterface::insert(const T& value, std::vector<ch
 {
     if constexpr (kHasSerializeMethod<T>)
     {
-        auto result2          = value.toByteVector();
+        auto result2 = value.toByteVector();
         const auto* bytes_len = result2.data(); // reinterpret_cast<const char*>(result2.data());
         std::copy(bytes_len, bytes_len + result2.size(), std::back_inserter(result));
     }

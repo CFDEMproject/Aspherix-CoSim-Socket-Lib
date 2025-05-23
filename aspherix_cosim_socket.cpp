@@ -18,23 +18,25 @@
 #include <ctime>
 #include <fcntl.h> // needed for connect with timeout
 #include <filesystem>
+#include <format>
+#include <fstream>
 #include <iostream>
+#include <mpi.h>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <tuple>
 #include <unistd.h>
-#include <format>
-#include <fstream>
-#include <mpi.h>
 
 namespace CoSimSocket
 {
 
-class AspherixCoSimSocket::Impl
-{
+class AspherixCoSimSocket::Impl {
 public:
-    Impl(AspherixCoSimSocket& owner) : owner_(owner) {}
+    Impl(AspherixCoSimSocket& owner) :
+        owner_(owner)
+    {
+    }
 
     void writeData(const std::span<char> data)
     {
@@ -45,14 +47,34 @@ public:
             owner_.write_socket(data.data(), size);
         }
     }
-  
+
     void writeData(const std::span<double> data)
     {
         const std::size_t size = data.size();
         owner_.write_socket(&size, sizeof(std::size_t));
         if (size > 0)
         {
-            owner_.write_socket(data.data(), size);
+            owner_.write_socket(data.data(), size * sizeof(double) / sizeof(char));
+        }
+    }
+
+    void writeData(const std::span<int> data)
+    {
+        const std::size_t size = data.size();
+        owner_.write_socket(&size, sizeof(std::size_t));
+        if (size > 0)
+        {
+            owner_.write_socket(data.data(), size * sizeof(double) / sizeof(int));
+        }
+    }
+
+    void writeData(const std::span<std::size_t> data)
+    {
+        const std::size_t size = data.size();
+        owner_.write_socket(&size, sizeof(std::size_t));
+        if (size > 0)
+        {
+            owner_.write_socket(data.data(), size * sizeof(double) / sizeof(std::size_t));
         }
     }
 
@@ -92,19 +114,19 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
             std::cout << "Create socket on client for server process ..." << '\n';
         }
     }
-    wait_seconds_   = wait_seconds;
+    wait_seconds_ = wait_seconds;
     ntries_connect_ = ntries_connect;
     //==================================================
     // CHECK IF PORT FILE EXISTS AND READ IF IT DOES
     std::size_t port_offset = 0;
-    bool found_port_file    = false;
+    bool found_port_file = false;
 
     // determine the file path for the port_offset file
     // Problem: here we assume CFD and DEM live in their own directories and
     // both directories have the same mother directory
     // TODO: find a better solution (e.g. absolute file path and unique filename?)
-    std::size_t size           = 0;
-    std::string cwd            = std::filesystem::current_path().string();
+    std::size_t size = 0;
+    std::string cwd = std::filesystem::current_path().string();
     std::string port_file_path = cwd + "/" + custom_port_file_path + "/port_offset_"
                                  + std::to_string(process_number) + ".txt";
 
@@ -121,8 +143,8 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
                     portFileName_ = port_file_path;
                 }
                 printTime();
-                std::cout << "Server: will forcefully attach to port " << std::to_string(port_) << "!"
-                          << '\n';
+                std::cout << "Server: will forcefully attach to port " << std::to_string(port_)
+                          << "!" << '\n';
                 int opt = 1;
                 // Forcefully attaching socket to the port
                 if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) != 0)
@@ -158,13 +180,13 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
     // connection will close immediately after closing your program;
     // and next restart will be able to bind again.
     linger lin{};
-    lin.l_onoff  = 1;
+    lin.l_onoff = 1;
     lin.l_linger = 0;
     setsockopt(sockfd_, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin));
 
     struct ::sockaddr_in address{};
     memset(&address, 0, sizeof(::sockaddr_in));
-    address.sin_family      = AF_INET;
+    address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
 
     bool success = false;
@@ -180,9 +202,9 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
 
         while (!success)
         {
-            port_            = base_port_ + process_number + port_offset;
+            port_ = base_port_ + process_number + port_offset;
             address.sin_port = htons(port_);
-            success          = false;
+            success = false;
             n_tries++;
 
             if (verbose_)
@@ -336,8 +358,8 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
             std::cout << "Server: process number " << process_number << " Try Accept..." << '\n';
         }
         socklen_t addrlen = sizeof(address);
-        insockfd_         = accept(sockfd_, (struct sockaddr*)&address,
-                                   &addrlen); // waits for client to connect!!!
+        insockfd_ = accept(sockfd_, (struct sockaddr*)&address,
+                           &addrlen); // waits for client to connect!!!
         // send(insockfd_, "1", 1, 0);
         if (insockfd_ < 0)
         {
@@ -384,7 +406,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
         // test the socket with t/o before accept
         // selectTO(sockfd_);
 
-        int ntries   = 0;
+        int ntries = 0;
         int ntry_max = ntries_connect_;
         while (connect(sockfd_, (struct sockaddr*)&address, sizeof(address)) < 0)
         {
@@ -441,17 +463,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
         }
     }
 
-    // test connection
-    // std::cout << "Server: process number " << processNumber << " testing connection
-    // (read/write)..." << '\n';
-    SocketCodes test_connection_out = SocketCodes::kWelcome;
-    if (isServer())
-        test_connection_out = SocketCodes::kWelcome;
-    SocketCodes test_connection_in = SocketCodes::kInvalid;
-    //    writeSocket(test_connection_out);
-    write_socket(&test_connection_out, sizeof(SocketCodes));
-    //    test_connection_in = readSocket<SocketCodes>();
-    read_socket(&test_connection_in, sizeof(SocketCodes));
+    SocketCodes test_connection_in = exchangeStatus(SocketCodes::kWelcome);
     status_ = SocketStatus::kActive;
 
     if (isServer())
@@ -637,8 +649,8 @@ std::pair<std::size_t, bool> AspherixCoSimSocket::readPortFile(const std::string
     }
 
     std::size_t port_offset = 0;
-    bool success            = false;
-    std::size_t n_tries     = 0;
+    bool success = false;
+    std::size_t n_tries = 0;
     while (!success)
     {
         n_tries++;
@@ -788,7 +800,7 @@ void AspherixCoSimSocket::selectTO(int& sockfd)
     // use select to test the connection with a timeout
     fd_set sock;
     struct timeval tv_struct{};
-    tv_struct.tv_sec  = 100;
+    tv_struct.tv_sec = 100;
     tv_struct.tv_usec = 0;
 
     FD_ZERO(&sock);
@@ -861,7 +873,7 @@ void AspherixCoSimSocket::write_socket(const void* const buf, const std::size_t 
 void AspherixCoSimSocket::read_socket(void* const buf, const std::size_t size)
 {
     std::size_t recv_size = 0;
-    std::size_t cur_size  = 0;
+    std::size_t cur_size = 0;
     while (recv_size < size)
     {
         if (isServer())
@@ -973,7 +985,7 @@ SocketCodes AspherixCoSimSocket::exchangeStatus(SocketCodes status_send, SocketC
         closeSocket(false);
         return SocketCodes::kCloseConnection;
     }
-    if (status_expect != SocketCodes::kUndefined && status_send != status_expect)
+    if (status_expect != SocketCodes::kUndefined && status_recv != status_expect)
     {
         error("FatalError: the exchanged socket codes do not match.");
     }
@@ -1017,37 +1029,60 @@ void AspherixCoSimSocket::writeData(const std::size_t& dataSize, char* const& da
 }
 */
 
-std::vector<char> AspherixCoSimSocket::readData()
-{
-    std::size_t vector_size = 0;
-    read_socket(&vector_size, sizeof(std::size_t));
-    std::vector<char> byte_vector;
-    if (vector_size > 0)
-    {
-        byte_vector.resize(vector_size);
-        read_socket(byte_vector.data(), vector_size);
-    }
-    return byte_vector;
-}
+// std::vector<char> AspherixCoSimSocket::readData()
+// {
+//     std::size_t vector_size = 0;
+//     read_socket(&vector_size, sizeof(std::size_t));
+//     std::vector<char> byte_vector;
+//     if (vector_size > 0)
+//     {
+//         byte_vector.resize(vector_size);
+//         read_socket(byte_vector.data(), vector_size);
+//     }
+//     return byte_vector;
+// }
+//
+// std::vector<double> AspherixCoSimSocket::readData()
+// {
+//     std::size_t vector_size = 0;
+//     read_socket(&vector_size, sizeof(std::size_t));
+//     std::vector<double> vector;
+//     if (vector_size > 0)
+//     {
+//         vector.resize(vector_size);
+//         read_socket(vector.data(), vector_size * sizeof(double) / sizeof(char));
+//     }
+//     return vector;
+// }
 
-void AspherixCoSimSocket::writeData(const std::vector<char>& data)
-{
-    const std::size_t size = data.size();
-    write_socket(&size, sizeof(std::size_t));
-    if (size > 0)
-    {
-        write_socket(data.data(), size);
-    }
-}
+// void AspherixCoSimSocket::writeData(const std::vector<char>& data)
+// {
+//     const std::size_t size = data.size();
+//     write_socket(&size, sizeof(std::size_t));
+//     if (size > 0)
+//     {
+//         write_socket(data.data(), size);
+//     }
+// }
 
-void AspherixCoSimSocket::writeData(const std::size_t& dataSize, char* const& data)
+void AspherixCoSimSocket::writeData(const std::size_t dataSize, char* const& data)
 {
     pimpl_->writeData(std::span<char>(data, dataSize));
 }
 
-void AspherixCoSimSocket::writeData(const std::size_t& dataSize, double* const& data)
+void AspherixCoSimSocket::writeData(const std::size_t dataSize, double* const& data)
 {
     pimpl_->writeData(std::span<double>(data, dataSize));
+}
+
+void AspherixCoSimSocket::writeData(const std::size_t dataSize, int* const& data)
+{
+    pimpl_->writeData(std::span<int>(data, dataSize));
+}
+
+void AspherixCoSimSocket::writeData(const std::size_t dataSize, std::size_t* const& data)
+{
+    pimpl_->writeData(std::span<std::size_t>(data, dataSize));
 }
 
 // void AspherixCoSimSocket::writeField(const CoSimField& field)
@@ -1117,30 +1152,7 @@ std::string AspherixCoSimSocket::readString()
     std::vector<char> byte_array(length);
     read_socket(byte_array.data(), length);
     return {byte_array.data()};
-
-    // char* byte_array = new char[length];
-    // read_socket(byte_array, length);
-    // const std::string result = byte_array;
-    // delete[] byte_array;
-    // return result;
-    //
-    // std::size_t str_length = 0;
-    // read_socket(&str_length, sizeof(std::size_t));
-    // offset += sizeof(std::size_t);
-    //
-    // // Extract the string data, including the null terminator
-    // std::string result(&byte_array_with_offset[offset], str_length);
-    // offset += str_length + 1; // +1 for the null terminator
-    //
-    // return result;
 }
-
-// bool AspherixCoSimSocket::readBool()
-// {
-//     bool flag = false;
-//     read_socket(&flag, sizeof(bool));
-//     return flag;
-// };
 
 void AspherixCoSimSocket::closeSocket(const bool mutual)
 {
@@ -1187,7 +1199,7 @@ void AspherixCoSimSocket::closeSocket(const bool mutual)
 void AspherixCoSimSocket::showBufferSizeInfo()
 {
     socklen_t optlen = sizeof(int);
-    int sndbuf_size  = 0;
+    int sndbuf_size = 0;
     if (getsockopt(sockfd_, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, &optlen) < 0)
     {
         error("getsockopt SO_SNDBUF failed");
@@ -1210,7 +1222,7 @@ void AspherixCoSimSocket::showBufferSizeInfo()
 
 void AspherixCoSimSocket::printTime() const
 {
-    std::time_t cur_t        = 0;
+    std::time_t cur_t = 0;
     struct std::tm* loc_time = nullptr;
     std::time(&cur_t);
     loc_time = std::localtime(&cur_t);
