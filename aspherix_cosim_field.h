@@ -42,8 +42,15 @@ public:
         ptr_(nullptr) {};
 
     // legacy CoSimField constructor
-    CoSimField(std::string name, std::string type, bool client_to_server);
-    CoSimField(const std::size_t size, const char* byte_array)
+    CoSimField(std::string name, std::string type, bool server_to_client);
+    CoSimField(const std::size_t size, const char* byte_array) :
+        type_(DataType::kNone),
+        data_length_(0),
+        object_(DataObject::kUndefined),
+        direction_(SyncDirection::kUndefined),
+        offset_(0),
+        index_(-1),
+        ptr_(nullptr)
     {
         const std::vector<char> data(byte_array, byte_array + size);
         fromByteVector(data);

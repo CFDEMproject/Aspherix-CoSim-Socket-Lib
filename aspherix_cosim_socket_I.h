@@ -26,20 +26,6 @@ SourceFiles
 #ifndef ASPHERIX_COSIM_SOCKET_I_H
 #define ASPHERIX_COSIM_SOCKET_I_H
 
-// #include <cstdio>
-// #include <cstring>
-// #include <iostream>
-// #include <string>
-// #include <type_traits>
-// #include <unistd.h>
-// #include <vector>
-
-// #include <arpa/inet.h>
-// #include <netinet/in.h>
-// #include <sys/socket.h>
-
-// using AspherixCoSimSocket = CoSimSocket::AspherixCoSimSocket;
-
 template <typename T> void AspherixCoSimSocket::read_socket(T* const value)
 {
     read_socket(static_cast<void* const>(value), sizeof(T));
@@ -75,7 +61,7 @@ template <typename T> void AspherixCoSimSocket::writeData(const std::vector<T>& 
 
 template <typename T> auto AspherixCoSimSocket::readValue(std::size_t size) -> T
 {
-    static constexpr bool needs_size = !std::is_trivially_copyable_v<T>;
+    static constexpr bool needs_size = !std::is_trivially_copyable<T>::value;
 
     size_t recv_size = 0;
     int cur_size = 0;
@@ -114,15 +100,12 @@ template <typename T> auto AspherixCoSimSocket::readValue(std::size_t size) -> T
         recv_size += cur_size;
     }
 
-    // if constexpr (needs_size)
-    //     return buf;
-    // else
     return *reinterpret_cast<T*>(buf.data());
 }
 
 template <typename T> int AspherixCoSimSocket::writeValue(const T& object)
 {
-    static constexpr bool needs_size = !std::is_trivially_copyable_v<T>;
+    static constexpr bool needs_size = !std::is_trivially_copyable<T>::value;
 
     const char* buf = nullptr;
     std::size_t size;
@@ -149,18 +132,7 @@ template <typename T> int AspherixCoSimSocket::writeValue(const T& object)
 
     while (send_size < size)
     {
-
-        //    if constexpr (needs_size)
-        //        cur_size = ::write(socket_file_descriptor, static_cast<const char*>(object.data())
-        //        + send_size, size - send_size);
-        //    else if (std::is_enum<T>::value)
         cur_size = ::write(socket_file_descriptor, buf + send_size, size - send_size);
-        //    else
-        //        cur_size = ::write(socket_file_descriptor, static_cast<const char*>(object) +
-        //        send_size, size - send_size);
-        // cur_size = ::write(socket_file_descriptor, static_cast<const char*>(static_cast<typename
-        // std::underlying_type<T>::type>(object)) + send_size, size - send_size);
-
         if (cur_size > 0)
             send_size += cur_size;
         else if (cur_size < 0)
@@ -184,25 +156,6 @@ template <typename T>
 int AspherixCoSimSocket::exchangeValue(T& object, const CoSimSocket::SyncDirection direction,
                                        const std::size_t size)
 {
-    // static constexpr bool kNeedsSize = !std::is_trivially_copyable_v<T>;
-    //
-    // size_t obj_size;
-    // if constexpr (kNeedsSize)
-    //     obj_size = object.size();
-    // else
-    //     obj_size = sizeof(T);
-    //
-    // const char* buf = nullptr;
-    // if constexpr (kNeedsSize)
-    //     buf = reinterpret_cast<const char*>(object.data());
-    // else // if (std::is_enum<T>::value)
-    //     buf = reinterpret_cast<const char*>(&object);
-
-    // auto send_size = 0;
-    // auto cur_size  = 0;
-
-    // const auto socket_file_descriptor = isServer() ? insockfd_ : sockfd_;
-
     if (direction == CoSimSocket::SyncDirection::kClientToServer && isClient()
         || direction == CoSimSocket::SyncDirection::kServerToClient && isServer())
     {
@@ -244,46 +197,6 @@ typename std::enable_if<D == SyncDirection::kRecv, void>::type AspherixCoSimSock
 {
     exchangeValueImpl<D, T>::execute(this, object);
 }
-
-// template <typename T> int AspherixCoSimSocket::exchangeValue(T& object)
-// {
-//     object = readValue<T>();
-//     return 0;
-// }
-//
-// template <typename T> int AspherixCoSimSocket::exchangeValue(const T& object)
-// {
-//     return writeValue(object);
-// }
-
-// // Overloaded function template for const reference
-// template <CoSimSocket::SyncDirection D, typename T>
-// typename std::enable_if_t<D == CoSimSocket::SyncDirection::kSend, void>::type
-// AspherixCoSimSocket::
-//     exchangeValueImpl(const T& object)
-// {
-//     writeValue(object);
-//     // if (direction == SyncDirection::toServer)
-//     // {
-//     //     std::cout << "Exchanging value to Server with const reference." << std::endl;
-//     //     // Implement exchange logic for Server
-//     // }
-//     // std::is_same<typename std::decay<T>::type, AspherixCoSimSocket>::value
-//     //                             && (((T::mode_ == CoSimSocket::Mode::kClient)
-//     //                                  && (direction ==
-//     //                                  CoSimSocket::SyncDirection::kServerToClient))
-//     //                                 || ((T::mode_ == CoSimSocket::Mode::kServer)
-//     //                                     && (direction ==
-//     //                                     CoSimSocket::SyncDirection::kClientToServer))),
-//     //                         void>::type
-// }
-//
-// template <typename T>
-// void typename std::enable_if_t<D == CoSimSocket::SyncDirection::kRecv, void>::type
-// AspherixCoSimSocket::exchangeValueImpl(T& object)
-// {
-//     object = readValue<T>();
-// }
 
 #endif // ASPHERIX_COSIM_SOCKET_I_H
 #endif // _WIN32

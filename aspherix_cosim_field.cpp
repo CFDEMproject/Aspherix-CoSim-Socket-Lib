@@ -13,12 +13,13 @@ CoSimField::CoSimField(std::string name, const DataType& type, const size_t data
     object_(object),
     direction_(direction),
     offset_(0),
-    index_(-1)
+    index_(-1),
+    ptr_(nullptr)
 {
     setTypeString();
 };
 
-CoSimField::CoSimField(std::string name, std::string type, const bool client_to_server) :
+CoSimField::CoSimField(std::string name, std::string type, const bool server_to_client) :
     name_(std::move(name)),
     type_(DataType::kDouble),
     type_string_(std::move(type)),
@@ -26,49 +27,50 @@ CoSimField::CoSimField(std::string name, std::string type, const bool client_to_
     object_(DataObject::kUndefined),
     direction_(),
     offset_(0),
-    index_(-1)
+    index_(-1),
+    ptr_(nullptr)
 {
     const auto npos = std::string::npos;
-    if (type.find("scalar-") != npos)
+    if (type_string_.find("scalar-") != npos)
     {
-        if (name == "body" || name == "id" || name == "type" || name == "shapetype" || // particle
-            name == "nrigid" || name == "clumptype" || name == "id_multisphere")       // MS
+        if (name_ == "body" || name_ == "id" || name_ == "type" || name_ == "shapetype" || // particle
+            name_ == "nrigid" || name_ == "clumptype" || name_ == "id_multisphere")       // MS
         {
             type_ = DataType::kInteger;
         }
         data_length_ = 1;
     }
-    else if (type.find("vector-") != npos)
+    else if (type_string_.find("vector-") != npos)
     {
         data_length_ = 3;
     }
-    else if (type.find("vector2D-") != npos)
+    else if (type_string_.find("vector2D-") != npos)
     {
         data_length_ = 2;
     }
-    else if (type.find("quaternion-") != npos)
+    else if (type_string_.find("quaternion-") != npos)
     {
         data_length_ = 4;
     }
 
-    if (type.find("-atom") != npos)
+    if (type_string_.find("-atom") != npos)
     {
         object_ = DataObject::kParticle;
     }
-    else if (type.find("-multisphere") != npos)
+    else if (type_string_.find("-multisphere") != npos)
     {
         object_ = DataObject::kMultisphere;
     }
-    else if (type.find("-pointcloud") != npos)
+    else if (type_string_.find("-pointcloud") != npos)
     {
         object_ = DataObject::kPointCloud;
     }
-    else if (type.find("-boundary") != npos)
+    else if (type_string_.find("-boundary") != npos)
     {
         object_ = DataObject::kBoundary;
     }
 
-    direction_ = client_to_server ? SyncDirection::kClientToServer : SyncDirection::kServerToClient;
+    direction_ = server_to_client ? SyncDirection::kServerToClient : SyncDirection::kClientToServer;
 }
 
 void CoSimField::setTypeString()
