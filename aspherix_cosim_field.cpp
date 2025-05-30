@@ -5,9 +5,11 @@
 
 namespace CoSimSocket
 {
-CoSimField::CoSimField(std::string name, const DataType& type, const size_t data_length,
-                       const DataObject& object, const SyncDirection& direction) :
-    name_(std::move(name)),
+CoSimField::CoSimField(std::string name, std::string container, const DataType& type,
+                       const size_t data_length, const DataObject& object,
+                       const SyncDirection& direction) :
+    field_name_(std::move(name)),
+    container_name_(std::move(container)),
     type_(type),
     data_length_(data_length),
     object_(object),
@@ -19,8 +21,10 @@ CoSimField::CoSimField(std::string name, const DataType& type, const size_t data
     setTypeString();
 };
 
-CoSimField::CoSimField(std::string name, std::string type, const bool server_to_client) :
-    name_(std::move(name)),
+CoSimField::CoSimField(std::string name, std::string container, std::string type,
+                       const bool server_to_client) :
+    field_name_(std::move(name)),
+    container_name_(std::move(container)),
     type_(DataType::kDouble),
     type_string_(std::move(type)),
     data_length_(1),
@@ -33,8 +37,10 @@ CoSimField::CoSimField(std::string name, std::string type, const bool server_to_
     const auto npos = std::string::npos;
     if (type_string_.find("scalar-") != npos)
     {
-        if (name_ == "body" || name_ == "id" || name_ == "type" || name_ == "shapetype" || // particle
-            name_ == "nrigid" || name_ == "clumptype" || name_ == "id_multisphere")       // MS
+        if (field_name_ == "body" || field_name_ == "id" || field_name_ == "type"
+            || field_name_ == "shapetype" || // particle
+            field_name_ == "nrigid" || field_name_ == "clumptype"
+            || field_name_ == "id_multisphere") // MS
         {
             type_ = DataType::kInteger;
         }

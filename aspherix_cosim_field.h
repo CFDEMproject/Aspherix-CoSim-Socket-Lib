@@ -42,7 +42,7 @@ public:
         ptr_(nullptr) {};
 
     // legacy CoSimField constructor
-    CoSimField(std::string name, std::string type, bool server_to_client);
+    CoSimField(std::string name, std::string container, std::string type, bool server_to_client);
     CoSimField(const std::size_t size, const char* byte_array) :
         type_(DataType::kNone),
         data_length_(0),
@@ -62,13 +62,14 @@ public:
     ~CoSimField() = default;
     CoSimField& operator=(const CoSimField&) = default;
     CoSimField& operator=(CoSimField&&) = default;
-    CoSimField(std::string name, const DataType& type = DataType::kDouble,
+    CoSimField(std::string name, std::string container, const DataType& type = DataType::kDouble,
                std::size_t data_length = 1, const DataObject& object = DataObject::kUndefined,
                const SyncDirection& direction = SyncDirection::kUndefined);
 
     bool operator==(const CoSimField& other) const
     {
-        return length() == other.length() && name_ == other.name_ && type_ == other.type_
+        return length() == other.length() && field_name_ == other.field_name_
+               && container_name_ == other.container_name_ && type_ == other.type_
                && data_length_ == other.data_length_ && object_ == other.object_
                && direction_ == other.direction_;
     }
@@ -76,8 +77,10 @@ public:
     [[nodiscard]] std::size_t length(
         const SyncDirection& direction = SyncDirection::kUndefined) const override
     {
-        return (name_.length() + 1) * sizeof(char) + sizeof(type_) + sizeof(data_length_)
-               + sizeof(object_) + sizeof(direction_) + sizeof(offset_) + sizeof(index_);
+        return (field_name_.length() + 1) * sizeof(char)
+               + (container_name_.length() + 1) * sizeof(char) + sizeof(type_)
+               + sizeof(data_length_) + sizeof(object_) + sizeof(direction_) + sizeof(offset_)
+               + sizeof(index_);
     }
 
     [[nodiscard]] std::vector<char> toByteVector(
@@ -86,8 +89,13 @@ public:
         std::vector<char> result;
         result.reserve(length());
 
-        const auto* bytes = name_.c_str();
-        std::copy(bytes, bytes + (sizeof(char) * (name_.size() + 1)), std::back_inserter(result));
+        const auto* bytes = field_name_.c_str();
+        std::copy(bytes, bytes + (sizeof(char) * (field_name_.size() + 1)),
+                  std::back_inserter(result));
+
+        bytes = container_name_.c_str();
+        std::copy(bytes, bytes + (sizeof(char) * (container_name_.size() + 1)),
+                  std::back_inserter(result));
 
         bytes = reinterpret_cast<const char*>(&type_);
         std::copy(bytes, bytes + sizeof(type_), std::back_inserter(result));
@@ -119,10 +127,17 @@ public:
 
         for (int i = 0; byte_array[offset_current + i] != '\0'; ++i)
         {
-            name_ += byte_array[offset_current + i];
+            field_name_ += byte_array[offset_current + i];
         }
-        name_[name_.size() + 1] = '\0';
-        offset_current += name_.size() + 1;
+        field_name_[field_name_.size() + 1] = '\0';
+        offset_current += field_name_.size() + 1;
+
+        for (int i = 0; byte_array[offset_current + i] != '\0'; ++i)
+        {
+            container_name_ += byte_array[offset_current + i];
+        }
+        container_name_[container_name_.size() + 1] = '\0';
+        offset_current += container_name_.size() + 1;
 
         std::vector<char> temp(&byte_array[offset_current],
                                &byte_array[offset_current + sizeof(DataType)]);
@@ -209,7 +224,10 @@ public:
         return to_string.at(value);
     }
 
-    [[nodiscard]] auto name() const { return name_; };
+    [[nodiscard]] auto name() const { return field_name_; };
+
+    [[nodiscard]] auto container() const { return container_name_; }
+    void container_name(std::string name) { container_name_ = std::move(name); }
 
     [[nodiscard]] auto type() const { return type_; };
 
@@ -255,6 +273,8 @@ public:
     }
 
 #if __cplusplus >= 202002L
+    // void setPtr(std::span<char> view) { ptr_ = view; }
+
     void setData(std::span<char> source)
     {
         std::memcpy(static_cast<char*>(ptr_), source.data(), source.size());
@@ -262,14 +282,15 @@ public:
 
     std::size_t processValue(const int index, std::span<char> property_data)
     {
-        char* data = getPtr(index);
+        char* data = getPtr(index); // reinterpret<char*>(ptr_) + index * dataTypeSize());
         memcpy(data, property_data.data(), dataTypeSize());
         return dataTypeSize();
     }
 #endif
 
 private:
-    std::string name_;
+    std::string field_name_;
+    std::string container_name_;
     DataType type_;
     std::string type_string_;
     std::size_t data_length_;
