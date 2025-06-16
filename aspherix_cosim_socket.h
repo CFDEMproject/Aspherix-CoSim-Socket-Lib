@@ -47,6 +47,7 @@ class CoSimField;
 
 enum class SocketCodes : std::uint8_t
 {
+    kUndefined,
     kWelcome,
     kCloseConnection,
     kStartExchange,
@@ -56,8 +57,7 @@ enum class SocketCodes : std::uint8_t
     kReadString,
     kPing,
     kInvalid,
-    kRequestQuit,
-    kUndefined
+    kRequestQuit
 };
 
 enum class SocketStatus : std::uint8_t
@@ -124,7 +124,6 @@ private:
     void writePortFile(const std::string& port_file_path, std::size_t port_offset);
     std::pair<std::size_t, bool> readPortFile(const std::string& path,
                                               std::size_t number_of_attempts = 1);
-    // int tryConnect(struct ::sockaddr_in);
     void selectTO(int& sock);
 
     int wait_seconds_;
@@ -160,7 +159,6 @@ public:
     std::string readString();
 
     void writeBool(bool flag) { write_socket(&flag, sizeof(bool)); };
-    // inline bool readBool();
     bool readBool()
     {
         bool flag = false;
@@ -174,66 +172,21 @@ public:
     template <typename T>
     int exchangeValue(T& object, SyncDirection direction, std::size_t size = sizeof(T));
 
-    // // Primary template for exchangeValue (not defined)
-    // template <SyncDirection D, typename T, typename = void> struct exchangeValueImpl;
-
-    // // Specialization for kSend (const T&)
-    // template <typename T>
-    // struct exchangeValueImpl<SyncDirection::kSend, T> {
-    //     void execute(const T& object) {
-    //         std::cout << "Exchanging value for sending: " << object << std::endl;
-    //         // Implement send logic here
-    //     }
-    // };
-
-    // // Specialization for kReceive (T by value)
-    // template <typename T>
-    // struct exchangeValueImpl<SyncDirection::kReceive, T> {
-    //     void execute(T object) { // Takes T by value
-    //         std::cout << "Exchanging value for receiving: " << object << std::endl;
-    //         // Implement receive logic here
-    //     }
-    // };
-
     // Primary template for exchangeValue (not defined)
     template <SyncDirection D, typename T, typename = void> struct exchangeValueImpl;
 
     // Public interface to exchangeValue
-    // template <SyncDirection D, typename T> void exchangeValue(T& object);
-    // template <SyncDirection D, typename T> void exchangeValue(const T& object);
     template <SyncDirection D, typename T>
     typename std::enable_if<D == SyncDirection::kSend, void>::type exchangeValue(const T& object);
 
     template <SyncDirection D, typename T>
     typename std::enable_if<D == SyncDirection::kRecv, void>::type exchangeValue(T& object);
-    // {
-    //     exchangeValueImpl<D, T> impl;          // Create an instance
-    //     impl.execute(std::forward<T>(object)); // Call the instance method
-    // }
-
-    // template <CoSimSocket::SyncDirection D, typename T>
-    // typename std::enable_if_t<D == CoSimSocket::SyncDirection::kRecv, void>::type exchangeValue(
-    //     T& object);
-    // template <CoSimSocket::SyncDirection D, typename T>
-    // typename std::enable_if_t<D == CoSimSocket::SyncDirection::kSend, void>::type exchangeValue(
-    //     const T& object);
-    // template <typename T> int exchangeValue(T& object);
-    // template <typename T> int exchangeValue(const T& object);
-    // template <CoSimSocket::SyncDirection D, typename T> void exchangeValue(const T& object);
 
     SocketCodes exchangeStatus(SocketCodes status_send = SocketCodes::kPing,
                                SocketCodes status_expect = SocketCodes::kUndefined);
-    // void exchangeDomain(bool active, double* limits);
 
-    // void readData(std::size_t& dataSize, char*& data);
     template <typename T> std::vector<T> readData();
     template <typename T> void writeData(const std::vector<T>& data);
-
-    // std::vector<double> readData();
-    // void writeData(const std::vector<char>& data);
-    // void writeData(const std::vector<double>& data);
-    // void writeData(const std::vector<int>& data);
-    // void writeData(const std::vector<std::size_t>& data);
 
     void writeData(std::size_t size, char* const& data);
     void writeData(std::size_t size, double* const& data);
@@ -241,8 +194,6 @@ public:
     void writeData(std::size_t size, std::size_t* const& data);
 
     void closeSocket(bool mutual = true);
-    // void mutually_closed_sockets(bool flag) { mutually_closed_sockets_ = flag; }
-    // bool mutually_closed_sockets() const { return mutually_closed_sockets_; }
 
     [[nodiscard]] bool hasOpenSocket() const { return (insockfd_ > 0 || sockfd_ > 0); };
 
@@ -254,9 +205,6 @@ public:
 
     void buildBytePattern() {}
     void sendProperties() {}
-    // std::vector<CoSimField> getSendFieldList() {return
-    // std::vector<CoSimField>();}; std::vector<CoSimField> getRecvFieldList()
-    // {return std::vector<CoSimField>();}
 };
 
 #include "aspherix_cosim_socket_I.h"

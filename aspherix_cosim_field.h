@@ -7,13 +7,8 @@
 #include <cassert>
 #include <cstring>
 #include <map>
-#if __cplusplus >= 202002L
-#include <span>
-#endif
 #include <string>
-#include <typeinfo>
 #include <utility>
-#include <variant>
 #include <vector>
 
 namespace CoSimSocket
@@ -25,12 +20,6 @@ using DataObjectMap = std::map<DataObject, std::string>;
 class CoSimField : public CoSimInterface {
 
 public:
-    enum class DataMode : std::uint8_t
-    {
-        kSum,
-        kAverage
-    };
-
     CoSimField(std::shared_ptr<AspherixCoSimSocket> socket = nullptr) :
         CoSimInterface(std::move(socket)),
         type_(DataType::kDouble),
@@ -40,6 +29,10 @@ public:
         offset_(0),
         index_(-1),
         ptr_(nullptr) {};
+
+    CoSimField(std::string name, std::string container, const DataType& type = DataType::kDouble,
+               std::size_t data_length = 1, const DataObject& object = DataObject::kUndefined,
+               const SyncDirection& direction = SyncDirection::kUndefined);
 
     // legacy CoSimField constructor
     CoSimField(std::string name, std::string container, std::string type, bool server_to_client);
@@ -59,12 +52,9 @@ public:
 
     CoSimField(const CoSimField&) = default;
     CoSimField(CoSimField&&) = default;
-    ~CoSimField() = default;
+    virtual ~CoSimField() = default;
     CoSimField& operator=(const CoSimField&) = default;
     CoSimField& operator=(CoSimField&&) = default;
-    CoSimField(std::string name, std::string container, const DataType& type = DataType::kDouble,
-               std::size_t data_length = 1, const DataObject& object = DataObject::kUndefined,
-               const SyncDirection& direction = SyncDirection::kUndefined);
 
     bool operator==(const CoSimField& other) const
     {
@@ -129,14 +119,12 @@ public:
         {
             field_name_ += byte_array[offset_current + i];
         }
-        field_name_[field_name_.size() + 1] = '\0';
         offset_current += field_name_.size() + 1;
 
         for (int i = 0; byte_array[offset_current + i] != '\0'; ++i)
         {
             container_name_ += byte_array[offset_current + i];
         }
-        container_name_[container_name_.size() + 1] = '\0';
         offset_current += container_name_.size() + 1;
 
         std::vector<char> temp(&byte_array[offset_current],
@@ -153,7 +141,6 @@ public:
         offset_current += sizeof(DataObject);
 
         temp = {&byte_array[offset_current], &byte_array[offset_current + sizeof(SyncDirection)]};
-        // direction_ = *reinterpret_cast<SyncDirection*>(temp.data());
         std::memcpy(&direction_, temp.data(), sizeof(SyncDirection));
         offset_current += sizeof(SyncDirection);
 
@@ -170,7 +157,7 @@ public:
         assert((offset_current - offset) == length());
     }
 
-    [[nodiscard]] std::size_t dataSizeOne() const
+    [[nodiscard]] virtual std::size_t dataSizeOne() const
     {
         switch (type_)
         {
@@ -186,7 +173,7 @@ public:
         }
     }
 
-    [[nodiscard]] std::size_t dataTypeSize() const { return data_length_ * dataSizeOne(); }
+    [[nodiscard]] virtual std::size_t dataTypeSize() const { return data_length_ * dataSizeOne(); }
 
     [[nodiscard]] bool isServerToClient() const
     {
@@ -260,6 +247,10 @@ public:
 
     [[nodiscard]] bool isArrayData() const { return data_length_ > 1; }
 
+    [[nodiscard]] bool isBool() const { return type_ == DataType::kBool; }
+    [[nodiscard]] bool isDouble() const { return type_ == DataType::kDouble; }
+    [[nodiscard]] bool isInteger() const { return type_ == DataType::kInteger; }
+
     void setTypeString();
 
     [[nodiscard]] std::string getTypeString() const { return type_string_; }
@@ -271,22 +262,6 @@ public:
     {
         return static_cast<char*>(ptr_) + index * dataTypeSize();
     }
-
-#if __cplusplus >= 202002L
-    // void setPtr(std::span<char> view) { ptr_ = view; }
-
-    void setData(std::span<char> source)
-    {
-        std::memcpy(static_cast<char*>(ptr_), source.data(), source.size());
-    }
-
-    std::size_t processValue(const int index, std::span<char> property_data)
-    {
-        char* data = getPtr(index); // reinterpret<char*>(ptr_) + index * dataTypeSize());
-        memcpy(data, property_data.data(), dataTypeSize());
-        return dataTypeSize();
-    }
-#endif
 
 private:
     std::string field_name_;

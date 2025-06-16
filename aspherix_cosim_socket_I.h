@@ -125,8 +125,8 @@ template <typename T> int AspherixCoSimSocket::writeValue(const T& object)
         buf = reinterpret_cast<const char*>(&object);
     }
 
-    auto send_size = 0;
-    auto cur_size = 0;
+    std::size_t send_size = 0;
+    std::size_t cur_size = 0;
 
     const auto socket_file_descriptor = isServer() ? insockfd_ : sockfd_;
 

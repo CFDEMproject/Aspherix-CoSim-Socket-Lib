@@ -306,6 +306,10 @@ public:
                     {
                         type = std::to_string(value);
                     }
+                    else if constexpr (std::is_same_v<T, bool>)
+                    {
+                        type = value ? "true" : "false";
+                    }
                     else if constexpr (std::is_same_v<T, std::string>)
                     {
                         type = value;

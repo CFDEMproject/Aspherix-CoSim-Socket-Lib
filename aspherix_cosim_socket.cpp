@@ -7,6 +7,7 @@
 \*---------------------------------------------------------------------------*/
 
 // this is not available on Windows
+#include <string>
 #ifndef _WIN32
 
 #include "aspherix_cosim_socket.h"
@@ -987,7 +988,11 @@ SocketCodes AspherixCoSimSocket::exchangeStatus(SocketCodes status_send, SocketC
     }
     if (status_expect != SocketCodes::kUndefined && status_recv != status_expect)
     {
-        error("FatalError: the exchanged socket codes do not match.");
+        std::string msg = std::string(
+                              "FatalError: the exchanged socket codes do not match. (received: ")
+                          + std::to_string(static_cast<int>(status_recv))
+                          + " but expect: " + std::to_string(static_cast<int>(status_expect)) + ")";
+        error(msg);
     }
     return status_recv;
 }
