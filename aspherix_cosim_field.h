@@ -35,7 +35,7 @@ public:
                const SyncDirection& direction = SyncDirection::kUndefined);
 
     // legacy CoSimField constructor
-    CoSimField(std::string name, std::string container, std::string type, bool server_to_client);
+    CoSimField(std::string name, std::string type, bool server_to_client);
     CoSimField(const std::size_t size, const char* byte_array) :
         type_(DataType::kNone),
         data_length_(0),
@@ -48,7 +48,7 @@ public:
         const std::vector<char> data(byte_array, byte_array + size);
         fromByteVector(data);
         setTypeString();
-    }
+    };
 
     CoSimField(const CoSimField&) = default;
     CoSimField(CoSimField&&) = default;
@@ -243,13 +243,13 @@ public:
     [[nodiscard]] bool isBoundaryData() const { return object_ == DataObject::kBoundary; }
     [[nodiscard]] bool isGlobalData() const { return object_ == DataObject::kGlobal; }
 
+    [[nodiscard]] bool isInteger() const { return type_ == DataType::kInteger; }
+    [[nodiscard]] bool isDouble() const { return type_ == DataType::kDouble; }
+    [[nodiscard]] bool isBool() const { return type_ == DataType::kBool; }
+
     [[nodiscard]] bool isScalarData() const { return data_length_ == 1; }
 
     [[nodiscard]] bool isArrayData() const { return data_length_ > 1; }
-
-    [[nodiscard]] bool isBool() const { return type_ == DataType::kBool; }
-    [[nodiscard]] bool isDouble() const { return type_ == DataType::kDouble; }
-    [[nodiscard]] bool isInteger() const { return type_ == DataType::kInteger; }
 
     void setTypeString();
 

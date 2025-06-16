@@ -12,6 +12,7 @@
 #include <numeric>
 #include <sstream>
 #include <type_traits>
+#include <vector>
 
 namespace CoSimSocket {
 
@@ -42,10 +43,10 @@ public:
   template <typename T>
   auto getSetting(const std::string &name) const -> T;
 
-  std::size_t length(const SyncDirection &direction = SyncDirection::kUndefined) const;
+  std::size_t length(const SyncDirection &direction = SyncDirection::kUndefined) const override;
   void fromByteVector(const std::vector<char> &byte_array, std::size_t offset = 0,
-                      const SyncDirection &direction = SyncDirection::kUndefined);
-  std::vector<char> toByteVector(const SyncDirection &direction = SyncDirection::kUndefined) const;
+                      const SyncDirection &direction = SyncDirection::kUndefined) override;
+  std::vector<char> toByteVector(const SyncDirection &direction = SyncDirection::kUndefined) const override;
 
   void printInfo() const;
 

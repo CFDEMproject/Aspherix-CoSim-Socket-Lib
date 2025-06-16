@@ -120,7 +120,7 @@ public:
         return result;
     }
 
-    std::size_t length(const SyncDirection& direction = SyncDirection::kUndefined) const
+    std::size_t length(const SyncDirection& direction = SyncDirection::kUndefined) const override
     {
         std::size_t length = 0;
 
@@ -181,7 +181,7 @@ public:
     }
 
     void fromByteVector(const std::vector<char>& byte_array, std::size_t offset = 0,
-                        const SyncDirection& direction = SyncDirection::kUndefined)
+                        const SyncDirection& direction = SyncDirection::kUndefined) override
     {
         for (auto& item : items_)
         {
@@ -201,7 +201,8 @@ public:
                         {
                             using D = typename T::value_type;
                             const auto vector_length = extract<std::size_t>(byte_array, offset);
-
+                            value.reserve(vector_length);
+                            value.clear();
                             for (std::size_t i = 0; i < vector_length; ++i)
                             {
                                 const D item = extract<D>(byte_array, offset);
@@ -212,7 +213,7 @@ public:
                         {
                             value = extract<std::string>(byte_array, offset);
                         }
-                        else if constexpr (kHasSerializeMethod<T>)
+                        else if constexpr (HasSerializeMethod<T>::value)
                         {
                             value.fromByteVector(&byte_array, offset);
                             offset += value.length();
@@ -228,7 +229,7 @@ public:
         assert(offset == byte_array.size());
     }
 
-    std::vector<char> toByteVector(const SyncDirection& direction = SyncDirection::kUndefined) const
+    std::vector<char> toByteVector(const SyncDirection& direction = SyncDirection::kUndefined) const override
     {
         std::vector<char> result;
         result.reserve(length(direction));
@@ -269,7 +270,7 @@ public:
                                 insert(item, result);
                             }
                         }
-                        else if constexpr (kHasSerializeMethod<T>)
+                        else if constexpr (HasSerializeMethod<T>::value)
                         {
                             auto data = value.toByteVector();
                             const auto* bytes = reinterpret_cast<const char*>(&data);

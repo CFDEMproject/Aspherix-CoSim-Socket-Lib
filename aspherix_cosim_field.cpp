@@ -21,10 +21,9 @@ CoSimField::CoSimField(std::string name, std::string container, const DataType& 
     setTypeString();
 };
 
-CoSimField::CoSimField(std::string name, std::string container, std::string type,
+CoSimField::CoSimField(std::string name, std::string type,
                        const bool server_to_client) :
     field_name_(std::move(name)),
-    container_name_(std::move(container)),
     type_(DataType::kDouble),
     type_string_(std::move(type)),
     data_length_(1),
@@ -61,18 +60,22 @@ CoSimField::CoSimField(std::string name, std::string container, std::string type
 
     if (type_string_.find("-atom") != npos)
     {
+        container_name_ = "particles";
         object_ = DataObject::kParticle;
     }
     else if (type_string_.find("-multisphere") != npos)
     {
+        container_name_ = "multisphere";
         object_ = DataObject::kMultisphere;
     }
     else if (type_string_.find("-pointcloud") != npos)
     {
+        container_name_ = "pointcloud";
         object_ = DataObject::kPointCloud;
     }
     else if (type_string_.find("-boundary") != npos)
     {
+        container_name_ = "boundary";
         object_ = DataObject::kBoundary;
     }
 

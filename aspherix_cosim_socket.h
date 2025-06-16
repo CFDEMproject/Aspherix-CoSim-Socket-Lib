@@ -166,8 +166,21 @@ public:
         return flag;
     };
 
-    template <typename T> int writeValue(const T& object);
-    template <typename T> auto readValue(std::size_t size = sizeof(T)) -> T;
+    template <typename T>
+    auto writeValue(const T& object) ->
+        typename std::enable_if<!std::is_trivially_copyable<T>::value, int>::type;
+
+    template <typename T>
+    auto writeValue(const T& object) ->
+        typename std::enable_if<std::is_trivially_copyable<T>::value, int>::type;
+
+    template <typename T>
+    auto readValue(std::size_t size = sizeof(T)) ->
+        typename std::enable_if<!std::is_trivially_copyable<T>::value, T>::type;
+
+    template <typename T>
+    auto readValue(std::size_t size = sizeof(T)) ->
+        typename std::enable_if<std::is_trivially_copyable<T>::value, T>::type;
 
     template <typename T>
     int exchangeValue(T& object, SyncDirection direction, std::size_t size = sizeof(T));
@@ -202,9 +215,6 @@ public:
     void printTime() const;
 
     void showBufferSizeInfo();
-
-    void buildBytePattern() {}
-    void sendProperties() {}
 };
 
 #include "aspherix_cosim_socket_I.h"

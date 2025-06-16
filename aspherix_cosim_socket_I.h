@@ -21,6 +21,7 @@ SourceFiles
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // this is not available on Windows
+#include <type_traits>
 #ifndef _WIN32
 
 #ifndef ASPHERIX_COSIM_SOCKET_I_H
@@ -59,23 +60,19 @@ template <typename T> void AspherixCoSimSocket::writeData(const std::vector<T>& 
     }
 }
 
-template <typename T> auto AspherixCoSimSocket::readValue(std::size_t size) -> T
+template <typename T>
+auto AspherixCoSimSocket::readValue(std::size_t size) -> typename std::enable_if<!std::is_trivially_copyable<T>::value, T>::type
 {
-    static constexpr bool needs_size = !std::is_trivially_copyable<T>::value;
+    error("Only trivially copyable datatypes are supported for direct socket communication");
+}
 
+template <typename T>
+auto AspherixCoSimSocket::readValue(std::size_t size) -> typename std::enable_if<std::is_trivially_copyable<T>::value, T>::type
+{
     size_t recv_size = 0;
     int cur_size = 0;
 
-    if constexpr (needs_size)
-    {
-        size = readValue<std::size_t>();
-        using ElementType = std::remove_pointer_t<decltype(std::declval<T>().data())>;
-        size = size * sizeof(ElementType);
-        error("Only trivially copyable datatypes are supported for direct socket communication");
-    }
-
     std::vector<char> buf;
-    buf.reserve(size);
     buf.resize(size);
 
     const auto socket_file_descriptor = isServer() ? insockfd_ : sockfd_;
@@ -103,27 +100,17 @@ template <typename T> auto AspherixCoSimSocket::readValue(std::size_t size) -> T
     return *reinterpret_cast<T*>(buf.data());
 }
 
-template <typename T> int AspherixCoSimSocket::writeValue(const T& object)
+template <typename T>
+auto AspherixCoSimSocket::writeValue(const T& object) -> typename std::enable_if<!std::is_trivially_copyable<T>::value, int>::type
 {
-    static constexpr bool needs_size = !std::is_trivially_copyable<T>::value;
+    error("Only trivially copyable datatypes are supported for direct socket communication");
+}
 
-    const char* buf = nullptr;
-    std::size_t size;
-
-    if constexpr (needs_size)
-    {
-        size = object.size();
-        writeValue(size);
-        using ElementType = std::remove_pointer_t<decltype(object.data())>;
-        size = size * sizeof(ElementType);
-        buf = reinterpret_cast<const char*>(object.data());
-        error("Only trivially copyable datatypes are supported for direct socket communication");
-    }
-    else
-    {
-        size = sizeof(T);
-        buf = reinterpret_cast<const char*>(&object);
-    }
+template <typename T>
+auto AspherixCoSimSocket::writeValue(const T& object) -> typename std::enable_if<std::is_trivially_copyable<T>::value, int>::type
+{
+    const std::size_t size = sizeof(T);
+    const char* buf = reinterpret_cast<const char*>(&object);
 
     std::size_t send_size = 0;
     std::size_t cur_size = 0;

@@ -51,38 +51,8 @@ enum class DataObject : std::uint8_t
     kGlobal
 };
 
-// Trait to check if T has a method named `interfaceMethod`
-template <typename T, typename = void> struct HasSerializeMethod : std::false_type
-{
-};
-
-template <typename T>
-struct HasSerializeMethod<T, std::void_t<decltype(std::declval<T>().toByteVector())>>
-    : std::true_type
-{
-};
-
-template <typename T> constexpr bool kHasSerializeMethod = HasSerializeMethod<T>::value;
-
-// Trait to detect if a type is a std::vector
-template <typename T> struct IsStdVector : std::false_type
-{
-};
-
-template <typename T, typename Alloc> struct IsStdVector<std::vector<T, Alloc>> : std::true_type
-{
-};
-
-// Trait to check if T is std::array<double, N> for any size N
-template <typename T> struct IsStdArrayDouble : std::false_type
-{
-};
-
-template <std::size_t N> struct IsStdArrayDouble<std::array<double, N>> : std::true_type
-{
-};
-
 class CoSimInterface {
+private:
 public:
     CoSimInterface(std::shared_ptr<AspherixCoSimSocket> socket) :
         socket_(std::move(socket))
@@ -139,63 +109,89 @@ public:
     }
 
 protected:
+    // Trait to check if T has a method named `toByteVector()`
+    template <typename T, typename = void> struct HasSerializeMethod : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct HasSerializeMethod<T, std::void_t<decltype(std::declval<T>().toByteVector())>>
+        : std::true_type
+    {
+    };
+
+    // Trait to detect if a type is a std::vector
+    template <typename T> struct IsStdVector : std::false_type
+    {
+    };
+
+    template <typename T, typename Alloc> struct IsStdVector<std::vector<T, Alloc>> : std::true_type
+    {
+    };
+
+    // Trait to check if T is std::array<double, N> for any size N
+    template <typename T> struct IsStdArrayDouble : std::false_type
+    {
+    };
+
+    template <std::size_t N> struct IsStdArrayDouble<std::array<double, N>> : std::true_type
+    {
+    };
+
     static std::size_t stringSize(const std::string& string)
     {
         return sizeof(std::size_t) + string.size() + 1;
     }
 
     template <typename T>
-    T extract(const std::vector<char>& byte_array_with_offset, std::size_t& offset);
+    auto extract(const std::vector<char>& byte_array_with_offset, std::size_t& offset) ->
+        typename std::enable_if<HasSerializeMethod<T>::value, T>::type;
 
-    template <typename T> void insert(const T& value, std::vector<char>& result) const;
+    template <typename T>
+    auto extract(const std::vector<char>& byte_array_with_offset, std::size_t& offset) ->
+        typename std::enable_if<!HasSerializeMethod<T>::value, T>::type;
 
-private:
+    template <typename T> // void insert(const T& value, std::vector<char>& result) const;
+    auto insert(const T& value, std::vector<char>& result) const ->
+        typename std::enable_if<HasSerializeMethod<T>::value, void>::type;
+
+    template <typename T> // void insert(const T& value, std::vector<char>& result) const;
+    auto insert(const T& value, std::vector<char>& result) const ->
+        typename std::enable_if<!HasSerializeMethod<T>::value, void>::type;
+
     std::shared_ptr<AspherixCoSimSocket> socket_;
 };
 
 template <typename T>
 auto CoSimInterface::extract(const std::vector<char>& byte_array_with_offset, std::size_t& offset)
-    -> T
+    -> typename std::enable_if<HasSerializeMethod<T>::value, T>::type
 {
-    if constexpr (kHasSerializeMethod<T>)
-    {
-        T temp;
-        temp.fromByteVector(byte_array_with_offset, offset);
-        offset += temp.length();
-        return temp;
-    }
-    else
-    {
-        if (offset + sizeof(T) > byte_array_with_offset.size())
-        {
-            throw std::out_of_range("Not enough bytes to extract the object.");
-        }
+    T temp;
+    temp.fromByteVector(byte_array_with_offset, offset);
+    offset += temp.length();
+    return temp;
+}
 
-        T value;
-        // Safely copy the bytes into the object
-        std::memcpy(&value, &byte_array_with_offset[offset], sizeof(T));
-        offset += sizeof(T);
-        return value;
-
-        // std::vector<char> temp(&byte_array_with_offset[offset],
-        //                        &byte_array_with_offset[offset + sizeof(T)]);
-        // offset += sizeof(T);
-        // return *reinterpret_cast<T*>(temp.data());
+template <typename T>
+auto CoSimInterface::extract(const std::vector<char>& byte_array_with_offset, std::size_t& offset)
+    -> typename std::enable_if<!HasSerializeMethod<T>::value, T>::type
+{
+    if (offset + sizeof(T) > byte_array_with_offset.size())
+    {
+        throw std::out_of_range("Not enough bytes to extract the object.");
     }
+
+    T value;
+    // Safely copy the bytes into the object
+    std::memcpy(&value, &byte_array_with_offset[offset], sizeof(T));
+    offset += sizeof(T);
+    return value;
 }
 
 template <>
 inline auto CoSimInterface::extract<std::string>(const std::vector<char>& byte_array_with_offset,
                                                  std::size_t& offset) -> std::string
 {
-    // std::vector<char> temp(&byte_array_with_offset[offset],
-    //                        &byte_array_with_offset[offset + sizeof(std::size_t)]);
-    // const auto str_length = *reinterpret_cast<std::size_t*>(temp.data());
-    // std::vector<char>
-    //     string(&byte_array_with_offset[offset + sizeof(std::size_t)],
-    //            &byte_array_with_offset[offset + sizeof(std::size_t) + str_length + 1]);
-    // offset += sizeof(std::size_t) + str_length + 1;
-    // return {string.data()};
     std::size_t str_length = 0;
     std::memcpy(&str_length, &byte_array_with_offset[offset], sizeof(std::size_t));
     offset += sizeof(std::size_t);
@@ -207,28 +203,27 @@ inline auto CoSimInterface::extract<std::string>(const std::vector<char>& byte_a
     return result;
 }
 
-template <typename T> void CoSimInterface::insert(const T& value, std::vector<char>& result) const
+template <typename T>
+auto CoSimInterface::insert(const T& value, std::vector<char>& result) const ->
+    typename std::enable_if<HasSerializeMethod<T>::value, void>::type
 {
-    if constexpr (kHasSerializeMethod<T>)
-    {
-        auto result2 = value.toByteVector();
-        const auto* bytes_len = result2.data(); // reinterpret_cast<const char*>(result2.data());
-        std::copy(bytes_len, bytes_len + result2.size(), std::back_inserter(result));
-    }
-    else
-    {
+    auto result2 = value.toByteVector();
+    const auto* bytes_len = result2.data(); // reinterpret_cast<const char*>(result2.data());
+    std::copy(bytes_len, bytes_len + result2.size(), std::back_inserter(result));
+}
+
+template <typename T>
+auto CoSimInterface::insert(const T& value, std::vector<char>& result) const ->
+    typename std::enable_if<!HasSerializeMethod<T>::value, void>::type
+{
 #if __cplusplus >= 202002L
-        auto bytes = std::as_bytes(std::span{&value, 1}); // std::as_bytes requires C++20
+    auto bytes = std::as_bytes(std::span{&value, 1}); // std::as_bytes requires C++20
 #else
-        std::vector<std::byte> bytes(sizeof(T));
-        std::memcpy(bytes.data(), &value, sizeof(T));
+    std::vector<std::byte> bytes(sizeof(T));
+    std::memcpy(bytes.data(), &value, sizeof(T));
 #endif
-        // std::copy(bytes.begin(), bytes.end(), std::back_inserter(result));
-        std::transform(bytes.begin(), bytes.end(), std::back_inserter(result),
-                       [](std::byte byte) { return static_cast<char>(byte); });
-        // const auto* bytes_len = reinterpret_cast<const char*>(&value);
-        // std::copy(bytes_len, bytes_len + sizeof(T), std::back_inserter(result));
-    }
+    std::transform(bytes.begin(), bytes.end(), std::back_inserter(result),
+                   [](std::byte byte) { return static_cast<char>(byte); });
 }
 
 template <>
@@ -240,7 +235,5 @@ inline void CoSimInterface::insert<std::string>(const std::string& value,
 
     result.insert(result.end(), value.begin(), value.end());
     result.push_back('\0'); // Append the null terminator if needed
-    // const auto* bytes = value.c_str(); // c_str is '\0' terminated, so +1
-    // std::copy(bytes, bytes + length + 1, std::back_inserter(result));
 }
 } // namespace CoSimSocket

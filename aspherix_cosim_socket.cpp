@@ -310,7 +310,6 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
         if (!found_port_file)
         {
             // check on local dir if portfile exists and read it
-
             std::string port_file_path_old = port_file_path;
 
             port_file_path = cwd + "/port_offset_" + std::to_string(process_number) + ".txt";
@@ -401,12 +400,6 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
 
         address.sin_port = htons(port_);
 
-        // trying connecton first
-        // int result = tryConnect(address); // does not work?
-
-        // test the socket with t/o before accept
-        // selectTO(sockfd_);
-
         int ntries = 0;
         int ntry_max = ntries_connect_;
         while (connect(sockfd_, (struct sockaddr*)&address, sizeof(address)) < 0)
@@ -447,8 +440,6 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
                           << ", waiting for timeOut=" << wait_seconds_ << "s" << '\n';
             }
         }
-        // char buf[1];
-        // recv(sockfd_, buf, 1, MSG_WAITFORONE);
         if (verbose_)
         {
             printTime();
@@ -503,8 +494,6 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
             std::cout << "Client: Socket connection established & tested" << '\n';
         }
     }
-
-    // showBufferSizeInfo();
 }
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -544,11 +533,9 @@ std::size_t AspherixCoSimSocket::readNumberFromFile(const std::string& path,
     std::ifstream myfile(path);
     std::size_t ntries = 0;
     sleep(wait_seconds_);
-    // //wait? // time stamp? // delete before and wait?
     while (!myfile.is_open())
     {
         sleep(wait_seconds_);
-        // sleep(1);
         ntries++;
         if (ntries > max_attempts)
         {
@@ -590,14 +577,14 @@ void AspherixCoSimSocket::deletePortFile() const
         }
         else
         {
-            // if (remove(portFileName_.c_str()) != 0)
-            // {
-            //     message = "Server: file '" + portFileName_ + "' does not exist - nothing to do.";
-            // }
-            // else
-            // {
-            //     message = "Server: file '" + portFileName_ + "' successfully deleted.";
-            // }
+            if (remove(portFileName_.c_str()) != 0)
+            {
+                message = "Server: file '" + portFileName_ + "' does not exist - nothing to do.";
+            }
+            else
+            {
+                message = "Server: file '" + portFileName_ + "' successfully deleted.";
+            }
         }
     }
     else if (!isServer())
@@ -700,101 +687,6 @@ std::pair<std::size_t, bool> AspherixCoSimSocket::readPortFile(const std::string
 
     return {port_offset, success};
 }
-
-// int AspherixCoSimSocket::tryConnect(struct ::sockaddr_in address)
-// {
-//     //=====================
-//     // test connect in non-blocking mode
-//     // connect with timeout (currently connected)
-//     // PROBLEM: program hangs if connect fails - so we want to "test" connect with a timeout
-//     // THIS CODE SNIPPET COMPILES BUT DOES NOT WORK AS DESIRED
-//     int res;
-//     long arg;
-//     // fd_set myset;
-//     // struct timeval tv;
-//     // int valopt;
-//     // socklen_t lon;
-//
-//     // Set non-blocking
-//     if ((arg = fcntl(sockfd_, F_GETFL, NULL)) < 0)
-//     {
-//         fprintf(stderr, "AspherixCoSimSocket: Error fcntl(..., F_GETFL) (%s)\n",
-//         strerror(errno)); exit(0);
-//     }
-//     arg |= O_NONBLOCK;
-//     if (fcntl(sockfd_, F_SETFL, arg) < 0)
-//     {
-//         fprintf(stderr, "AspherixCoSimSocket: Error fcntl(..., F_SETFL) (%s)\n",
-//         strerror(errno)); exit(0);
-//     }
-//     // Trying to connect with timeout
-//     res = connect(sockfd_, (struct sockaddr*)&address, sizeof(address));
-//     if (res < 0)
-//     {
-//         if (errno == EINPROGRESS)
-//         {
-//             fprintf(stderr, "AspherixCoSimSocket: EINPROGRESS in connect()\n");
-//
-//             /*// further tesing with timeout
-//             do
-//             {
-//                 tv.tv_sec = 1;
-//                 tv.tv_usec = 0;
-//                 FD_ZERO(&myset);
-//                 FD_SET(sockfd_, &myset);
-//                 res = select(sockfd_+1, NULL, &myset, NULL, &tv);
-//                 if (res < 0 && errno != EINTR)
-//                 {
-//                     fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno));
-//                     exit(0);
-//                 }
-//                 else if (res > 0)
-//                 {
-//                     // Socket selected for write
-//                     lon = sizeof(int);
-//                     if (getsockopt(sockfd_, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0)
-//                     {
-//                         fprintf(stderr, "Error in getsockopt() %d - %s\n", errno,
-//             strerror(errno)); exit(0);
-//                     }
-//                     // Check the value returned...
-//                     if (valopt)
-//                     {
-//                         fprintf(stderr, "Error in delayed connection() %d - %s\n", valopt,
-//             strerror(valopt)); exit(0);
-//                     }
-//                     break;
-//                 }
-//                 else
-//                 {
-//                     fprintf(stderr, "Timeout in select() - Cancelling!\n");
-//                     exit(0);
-//                 }
-//             } while (1);*/
-//         }
-//         else
-//         {
-//             fprintf(stderr, "AspherixCoSimSocket: Error connecting %d - %s\n", errno,
-//                     strerror(errno));
-//             exit(0);
-//         }
-//     }
-//
-//     // Set to blocking mode again...
-//     if ((arg = fcntl(sockfd_, F_GETFL, NULL)) < 0)
-//     {
-//         fprintf(stderr, "AspherixCoSimSocket: Error fcntl(..., F_GETFL) (%s)\n",
-//         strerror(errno)); exit(0);
-//     }
-//     arg &= (~O_NONBLOCK);
-//     if (fcntl(sockfd_, F_SETFL, arg) < 0)
-//     {
-//         fprintf(stderr, "AspherixCoSimSocket: Error fcntl(..., F_SETFL) (%s)\n",
-//         strerror(errno)); exit(0);
-//     }
-//
-//     return res;
-// }
 
 void AspherixCoSimSocket::selectTO(int& sockfd)
 {
@@ -906,76 +798,6 @@ void AspherixCoSimSocket::read_socket(void* const buf, const std::size_t size)
     }
 }
 
-// void AspherixCoSimSocket::sendProperties()
-// {
-//     // send number of push (from DEM to CFD) properties
-//     const auto nprops_push = writeFieldList(push_field_list_);
-//     std::cout << "    send " << nprops_push << " properties (DEM -> CFD communication) -
-//     done."
-//               << '\n';
-//
-//     // send number of push (from DEM to CFD) properties
-//     const auto nprops_pull = writeFieldList(pull_field_list_);
-//     std::cout << "    send " << nprops_pull << " properties (CFD -> DEM communication) -
-//     done."
-//               << '\n';
-//
-//     // send push (from DEM to CFD) names and types
-//     //    std::cout << "    send push (from DEM to CFD) names and types ..." << '\n';
-// }
-
-// std::size_t AspherixCoSimSocket::writeFieldList(const std::vector<CoSimField>& field_list)
-// {
-//     const std::size_t nprops = field_list.size();
-//     write_socket(&nprops, sizeof(std::size_t));
-//
-//     for (std::size_t i = 0; i < nprops; i++)
-//     {
-//         writeField(field_list[i]);
-//     }
-//     return nprops;
-// }
-
-// std::size_t AspherixCoSimSocket::recvProperties()
-// {
-//     // send number of push (from DEM to CFD) properties
-//     const auto nprops_push = readFieldList();
-//     std::cout << "    " << nprops_push << " push properties received" << '\n';
-//
-//     // send number of push (from DEM to CFD) properties
-//     const auto nprops_pull = readFieldList();
-//     std::cout << "    " << nprops_pull << " pull properties received" << '\n';
-//
-//     return nprops_push + nprops_pull;
-// }
-
-// std::size_t AspherixCoSimSocket::readFieldList()
-// {
-//     std::size_t nprops = 0;
-//     read_socket(&nprops, sizeof(std::size_t));
-//
-//     for (std::size_t i = 0; i < nprops; i++)
-//     {
-//         const auto field = readField();
-//         addField(field);
-//     }
-//     return nprops;
-// }
-
-// void AspherixCoSimSocket::buildBytePattern()
-// {
-//     for (auto& field : pull_field_list_)
-//     {
-//         field.setOffset(rcvBytesPerParticle_);
-//         rcvBytesPerParticle_ += field.dataTypeSize();
-//     }
-//     for (auto& field : push_field_list_)
-//     {
-//         field.setOffset(sndBytesPerParticle_);
-//         sndBytesPerParticle_ += field.dataTypeSize();
-//     }
-// }
-
 SocketCodes AspherixCoSimSocket::exchangeStatus(SocketCodes status_send, SocketCodes status_expect)
 {
     write_socket(&status_send, sizeof(SocketCodes));
@@ -997,79 +819,6 @@ SocketCodes AspherixCoSimSocket::exchangeStatus(SocketCodes status_send, SocketC
     return status_recv;
 }
 
-// void AspherixCoSimSocket::exchangeDomain(bool active, double* limits)
-// {
-//     double bounds[6];
-//     for (int j = 0; j < 6; j++)
-//         bounds[j] = limits[j];
-//
-//     SocketCodes msg;
-//     if (active)
-//     {
-//         msg = SocketCodes::kBoundingBoxUpdate;
-//         write_socket(&msg, sizeof(SocketCodes));
-//         write_socket(&bounds, 6 * sizeof(double));
-//         // std::cout << "sending bounds done.\n";
-//     }
-//     else
-//     {
-//         msg = SocketCodes::kInvalid;
-//         write_socket(&msg, sizeof(SocketCodes));
-//         std::cout << "not using bounds.\n";
-//     }
-// }
-
-/*
-void AspherixCoSimSocket::readData(std::size_t& dataSize, char*& data)
-{
-    read_socket(&dataSize, sizeof(std::size_t)); // read dataSize
-    data = new char[dataSize];
-    read_socket(data, dataSize); // read data
-}
-
-void AspherixCoSimSocket::writeData(const std::size_t& dataSize, char* const& data)
-{
-    write_socket(&dataSize, sizeof(std::size_t));
-    write_socket(data, dataSize);
-}
-*/
-
-// std::vector<char> AspherixCoSimSocket::readData()
-// {
-//     std::size_t vector_size = 0;
-//     read_socket(&vector_size, sizeof(std::size_t));
-//     std::vector<char> byte_vector;
-//     if (vector_size > 0)
-//     {
-//         byte_vector.resize(vector_size);
-//         read_socket(byte_vector.data(), vector_size);
-//     }
-//     return byte_vector;
-// }
-//
-// std::vector<double> AspherixCoSimSocket::readData()
-// {
-//     std::size_t vector_size = 0;
-//     read_socket(&vector_size, sizeof(std::size_t));
-//     std::vector<double> vector;
-//     if (vector_size > 0)
-//     {
-//         vector.resize(vector_size);
-//         read_socket(vector.data(), vector_size * sizeof(double) / sizeof(char));
-//     }
-//     return vector;
-// }
-
-// void AspherixCoSimSocket::writeData(const std::vector<char>& data)
-// {
-//     const std::size_t size = data.size();
-//     write_socket(&size, sizeof(std::size_t));
-//     if (size > 0)
-//     {
-//         write_socket(data.data(), size);
-//     }
-// }
-
 void AspherixCoSimSocket::writeData(const std::size_t dataSize, char* const& data)
 {
     pimpl_->writeData(std::span<char>(data, dataSize));
@@ -1089,59 +838,6 @@ void AspherixCoSimSocket::writeData(const std::size_t dataSize, std::size_t* con
 {
     pimpl_->writeData(std::span<std::size_t>(data, dataSize));
 }
-
-// void AspherixCoSimSocket::writeField(const CoSimField& field)
-// {
-//     const auto byte_vector = field.toByteVector();
-//     const auto vector_size = byte_vector.size();
-//
-//     /*
-//         writeSocket(vector_size);
-//         writeSocket(byte_vector);
-//     */
-//     write_socket(&vector_size, sizeof(std::size_t));
-//     if (vector_size > 0)
-//     {
-//         write_socket(byte_vector.data(), vector_size);
-//     }
-//     /*    const std::size_t field_byte_size = field.byteLength();
-//         write_socket(&field_byte_size, sizeof(std::size_t));
-//         write_socket(byteArray.c_str(), byteArray.size());*/
-// }
-
-// CoSimField AspherixCoSimSocket::readField()
-// {
-//     std::size_t field_size;
-//     read_socket(&field_size, sizeof(std::size_t));
-//     char* byte_array = new char[field_size];
-//     if (field_size > 0)
-//     {
-//         read_socket(byte_array, field_size);
-//     }
-//     auto field = CoSimField(field_size, byte_array);
-//     delete[] byte_array;
-//     return field;
-//
-//     // const std::size_t vector_size = readSocket<std::size_t>();
-//     // std::vector<char> byte_vector;
-//     ////byte_vector.reserve(vector_size);
-//     // byte_vector = readSocket<std::vector<char>>(vector_size);
-//     // return CoSimField(byte_vector);
-// }
-
-/*
-CoSimField AspherixCoSimSocket::readField2()
-{
-//    std::size_t field_size;
-//    read_socket(&field_size, sizeof(std::size_t));
-//    char* byteArray = new char[field_size];
-//    read_socket(byteArray, field_size);
-    const std::size_t vector_size = readSocket<std::size_t>();
-    char* char_data = new char[vector_size];
-    read_socket(char_data, vector_size);
-    return CoSimField(char_data);
-}
-*/
 
 void AspherixCoSimSocket::writeString(const std::string& str)
 {
@@ -1166,10 +862,8 @@ void AspherixCoSimSocket::closeSocket(const bool mutual)
         SocketCodes msg_send = SocketCodes::kCloseConnection;
         write_socket(&msg_send, sizeof(SocketCodes));
         const std::string src = isServer() ? "server" : "client";
-        // std::cout << src << ": sending " << (int)msg_send << "\n";
         SocketCodes msg_recv = SocketCodes::kInvalid;
         read_socket(&msg_recv, sizeof(SocketCodes));
-        // std::cout << src << ": received " << (int)msg_recv << "\n";
         assert(msg_recv == SocketCodes::kCloseConnection);
     }
 
@@ -1237,7 +931,6 @@ void AspherixCoSimSocket::printTime() const
         std::cout << std::format("[{:02}:{:02}:{:02}] ", loc_time->tm_hour, loc_time->tm_min,
                                  loc_time->tm_sec);
 #else
-        // printf("[%02d:%02d:%02d] ", loc_time->tm_hour, loc_time->tm_min, loc_time->tm_sec);
         std::cout << '[' << std::setw(2) << std::setfill('0') << loc_time->tm_hour << ':'
                   << std::setw(2) << std::setfill('0') << loc_time->tm_min << ':' << std::setw(2)
                   << std::setfill('0') << loc_time->tm_sec << "] ";

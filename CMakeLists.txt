@@ -29,7 +29,7 @@ else()
     add_library(aspherix_cosim_socket SHARED ${SOURCE})
 endif()
 
-set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_settings.h aspherix_cosim_socket.h aspherix_cosim_field.h aspherix_cosim_interface.h)
+set_property(TARGET aspherix_cosim_socket PROPERTY PUBLIC_HEADER aspherix_cosim_settings.h aspherix_cosim_socket.h aspherix_cosim_field.h aspherix_cosim_interface.h aspherix_cosim_socket_I.h)
 
 OPTION(STATIC_LIBSTDCPP "Build with statically linked C++ standard library" OFF)
 
