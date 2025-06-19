@@ -19,7 +19,9 @@
 #include <ctime>
 #include <fcntl.h> // needed for connect with timeout
 #include <filesystem>
+#if __cplusplus >= 202002L
 #include <format>
+#endif
 #include <fstream>
 #include <iostream>
 #include <mpi.h>
