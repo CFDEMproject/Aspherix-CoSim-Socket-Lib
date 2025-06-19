@@ -12,6 +12,8 @@
 
 set -e    # script should always report failures
 
+source ./compilerCheck.sh
+
 rm -rf build install
 mkdir build install
 pushd build
