@@ -147,9 +147,9 @@ public:
                         std::size_t ntries_connect = kConnectionTryLimit, bool verbose = false,
                         bool keep_port_offset_file = false);
 
-    AspherixCoSimSocket(const AspherixCoSimSocket&) = default;
+    AspherixCoSimSocket(const AspherixCoSimSocket&) = delete;
     AspherixCoSimSocket(AspherixCoSimSocket&&) = delete;
-    AspherixCoSimSocket& operator=(const AspherixCoSimSocket&) = default;
+    AspherixCoSimSocket& operator=(const AspherixCoSimSocket&) = delete;
     AspherixCoSimSocket& operator=(AspherixCoSimSocket&&) = delete;
 
     // Destructor
