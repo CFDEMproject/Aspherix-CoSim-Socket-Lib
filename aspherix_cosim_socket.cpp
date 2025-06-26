@@ -130,7 +130,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
     // TODO: find a better solution (e.g. absolute file path and unique filename?)
     std::size_t size = 0;
     std::string cwd = std::filesystem::current_path().string();
-    std::string port_file_path = cwd + "/" + custom_port_file_path + "/port_offset_"
+    std::string port_file_path = cwd + "/" + custom_port_file_path + "/portOffset_"
                                  + std::to_string(process_number) + ".txt";
 
     if (isServer())
@@ -157,7 +157,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
             }
             else if (!found_port_file && process_number == 0)
             {
-                std::cout << "\nDEM could not find port_offset file.\n"
+                std::cout << "\nDEM could not find portOffset file.\n"
                           << "   Auto-detecting available ports...\n"
                           << "*  Find details in the documentation (look for 'Setup a case using "
                              "socket communication').\n"
@@ -215,7 +215,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
                 printTime();
                 std::cout << "Server: process number " << process_number
                           << " trying to bind/listen with port " << std::to_string(port_) << " ("
-                          << std::to_string(base_port_) << "+ port_offset + procNr)\n";
+                          << std::to_string(base_port_) << "+ portOffset + procNr)\n";
             }
             else if (process_number == 0)
             {
@@ -249,7 +249,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
                 {
                     printTime();
                     std::cout << "Server: process number " << process_number
-                              << " Bind was successful with port_offset = " << port_offset << '\n';
+                              << " Bind was successful with portOffset = " << port_offset << '\n';
                 }
                 else if (process_number == 0)
                 {
@@ -314,12 +314,12 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
             // check on local dir if portfile exists and read it
             std::string port_file_path_old = port_file_path;
 
-            port_file_path = cwd + "/port_offset_" + std::to_string(process_number) + ".txt";
+            port_file_path = cwd + "/portOffset_" + std::to_string(process_number) + ".txt";
 
             if (process_number == 0)
             {
                 printTime();
-                std::cout << "Could not find port_offset files at: " << port_file_path_old
+                std::cout << "Could not find portOffset files at: " << port_file_path_old
                           << "\nTrying alternative: " << port_file_path << "\n"
                           << '\n';
             }
@@ -331,14 +331,14 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
                 if (process_number == 0)
                 {
                     printTime();
-                    std::cout << "ERROR: CFD could not find port_offset file.\n"
-                              << "   Probably there was no user defined port_offset "
+                    std::cout << "ERROR: CFD could not find portOffset file.\n"
+                              << "   Probably there was no user defined portOffset "
                               << "   file and the DEM was not able to find suitable ports.\n"
                               << "*  Find details in the documentation "
                               << "   (look for 'Setup a case using socket communication').\n"
                               << '\n';
                 }
-                error("FatalError: port_offset file not found.");
+                error("FatalError: portOffset file not found.");
             }
         }
         port_ = base_port_ + process_number + port_offset;
@@ -424,7 +424,7 @@ AspherixCoSimSocket::AspherixCoSimSocket(const Mode& mode, std::size_t process_n
                        "the "
                        "port it tried to use is not available. "
                     << "Please check the DEM logfile and try a different port (specified in "
-                       "port_offset.txt).\n"
+                       "portOffset.txt).\n"
                     << '\n';
                 error("Connection Failed"); // std::cerr << "Connection Failed" <<
                                             // '\n'; std::exit(1);
@@ -605,7 +605,7 @@ void AspherixCoSimSocket::writePortFile(const std::string& port_file_path, std::
     if (verbose_)
     {
         printTime();
-        std::cout << "Server: write port_offset of " << port_offset << " to " << port_file_path
+        std::cout << "Server: write portOffset of " << port_offset << " to " << port_file_path
                   << '\n';
     }
     std::ofstream port_offset_file;
@@ -652,7 +652,7 @@ std::pair<std::size_t, bool> AspherixCoSimSocket::readPortFile(const std::string
                 printTime();
                 std::cout
                     << mode
-                    << ": port_offset of this simulation run is read from file: port_offset = "
+                    << ": portOffset of this simulation run is read from file: portOffset = "
                     << port_offset << '\n';
             }
 
@@ -672,14 +672,14 @@ std::pair<std::size_t, bool> AspherixCoSimSocket::readPortFile(const std::string
             {
                 printTime();
                 std::cout << mode << ": process " << process_number_
-                          << " port_offset of this simulation could not be read attempt " << n_tries
+                          << " portOffset of this simulation could not be read attempt " << n_tries
                           << "/" << number_of_attempts << ", waiting for " << wait_seconds_ << "s"
                           << '\n';
             }
             else if (process_number_ == 0)
             {
                 printTime();
-                std::cout << mode << ": port_offset of this simulation could not be read attempt "
+                std::cout << mode << ": portOffset of this simulation could not be read attempt "
                           << n_tries << "/" << number_of_attempts << ", waiting for "
                           << wait_seconds_ << "s" << '\n';
             }
