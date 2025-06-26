@@ -2,7 +2,7 @@
 
 # Minimum required versions
 MIN_GCC_MAJOR=13
-MIN_CLANG_MAJOR=10
+MIN_CLANG_MAJOR=17
 
 # Fallback clang versions to try
 CLANG_CANDIDATES="clang++-19 clang++-18 clang++-17 clang++-16 clang++-15 clang++-10"
