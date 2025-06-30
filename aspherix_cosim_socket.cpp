@@ -19,13 +19,14 @@
 #include <ctime>
 #include <fcntl.h> // needed for connect with timeout
 #include <filesystem>
-#if __cplusplus >= 202002L
+#if __has_include(<format>) && (__cpp_lib_format >= 201907L)
 #include <format>
 #endif
 #include <fstream>
 #include <iostream>
 #include <mpi.h>
 #include <netinet/in.h>
+#include <span>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <tuple>
@@ -929,7 +930,7 @@ void AspherixCoSimSocket::printTime() const
     loc_time = std::localtime(&cur_t);
     if (loc_time != nullptr)
     {
-#if __cplusplus >= 202002L
+#if __has_include(<format>) && (__cpp_lib_format >= 201907L)
         std::cout << std::format("[{:02}:{:02}:{:02}] ", loc_time->tm_hour, loc_time->tm_min,
                                  loc_time->tm_sec);
 #else
