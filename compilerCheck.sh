@@ -1,11 +1,11 @@
 #!/bin/sh
 
 # Minimum required versions
-MIN_GCC_MAJOR=13
-MIN_CLANG_MAJOR=17
+MIN_GCC_MAJOR=11
+MIN_CLANG_MAJOR=14
 
 # Fallback clang versions to try
-CLANG_CANDIDATES="clang++-19 clang++-18 clang++-17 clang++-16 clang++-15 clang++-10"
+CLANG_CANDIDATES="clang++-20 clang++-19 clang++-18 clang++-17 clang++-16 clang++-15"
 
 # Find c++ path and real target
 CXX_PATH=$(command -v c++)
