@@ -806,11 +806,6 @@ SocketCodes AspherixCoSimSocket::exchangeStatus(SocketCodes status_send, SocketC
     write_socket(&status_send, sizeof(SocketCodes));
     SocketCodes status_recv = SocketCodes::kInvalid;
     read_socket(&status_recv, sizeof(SocketCodes));
-    if (status_recv == SocketCodes::kCloseConnection)
-    {
-        closeSocket(false);
-        return SocketCodes::kCloseConnection;
-    }
     if (status_expect != SocketCodes::kUndefined && status_recv != status_expect)
     {
         std::string msg = std::string(
