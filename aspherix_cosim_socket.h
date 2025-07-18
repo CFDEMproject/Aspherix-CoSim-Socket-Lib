@@ -199,6 +199,7 @@ public:
                                SocketCodes status_expect = SocketCodes::kUndefined);
 
     template <typename T> std::vector<T> readData();
+    template <typename T> void readData(std::vector<T>& buffer);
     template <typename T> void writeData(const std::vector<T>& data);
 
     void writeData(std::size_t size, char* const& data);
