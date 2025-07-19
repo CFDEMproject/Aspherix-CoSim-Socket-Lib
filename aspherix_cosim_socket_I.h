@@ -54,9 +54,9 @@ template <typename T> void AspherixCoSimSocket::readData(std::vector<T>& vector)
 {
     std::size_t vector_size = 0;
     read_socket(&vector_size, sizeof(std::size_t));
+    vector.resize(vector_size);
     if (vector_size > 0)
     {
-        vector.resize(vector_size);
         read_socket(vector.data(), vector_size * sizeof(T) / sizeof(char));
     }
 }
