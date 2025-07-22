@@ -133,13 +133,6 @@ auto AspherixCoSimSocket::writeValue(const T& object) -> typename std::enable_if
         cur_size = ::write(socket_file_descriptor, buf + send_size, size - send_size);
         if (cur_size > 0)
             send_size += cur_size;
-        else if (cur_size < 0)
-        {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                std::cout << "Waiting for sending data " << std::to_string(errno) << std::endl;
-            else
-                error("\n\nERROR: AspherixCoSimSocket::write_socket: Failed sending data.\n");
-        }
         else if (cur_size == 0)
             error(std::string("\n\nERROR: AspherixCoSimSocket::write_socket: Disconnected. ")
                   + std::to_string(cur_size));
