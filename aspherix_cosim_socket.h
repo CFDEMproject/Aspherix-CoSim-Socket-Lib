@@ -26,141 +26,201 @@ SourceFiles
 #ifndef ASPHERIX_COSIM_SOCKET_H
 #define ASPHERIX_COSIM_SOCKET_H
 
-#include <vector>
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
 #include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
-enum class SocketCodes
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+namespace CoSimSocket
 {
-    welcome_server,
-    welcome_client,
-    close_connection,
-    start_exchange,
-    bounding_box_update,
-    read_a_number,
-    read_a_word,
-    ping,
-    invalid,
-    request_quit
+
+class CoSimField;
+
+enum class SocketCodes : std::uint8_t
+{
+    kUndefined,
+    kWelcome,
+    kCloseConnection,
+    kStartExchange,
+    kStopExchange,
+    kBoundingBoxUpdate,
+    kReadANumber,
+    kReadString,
+    kPing,
+    kInvalid,
+    kRequestQuit
 };
+
+enum class SocketStatus : std::uint8_t
+{
+    kInactive,
+    kActive
+};
+
+enum class Mode : std::uint8_t
+{
+    kClient,
+    kServer
+};
+
+enum class SyncDirection : std::uint8_t
+{
+    kClientToServer,
+    kServerToClient,
+    kUndefined,
+    kSend,
+    kRecv
+};
+
+constexpr std::size_t kBasePort = 49152;
+constexpr std::size_t kConnectionTryLimit = 10;
+constexpr std::size_t kWaitSeconds = 0;
+constexpr std::size_t kNumberOfAttempts = 10;
 
 /*---------------------------------------------------------------------------*\
                            Class AspherixCoSimSocket Declaration
 \*---------------------------------------------------------------------------*/
 
-class AspherixCoSimSocket
-{
+class AspherixCoSimSocket {
+
+private:
+    class Impl;
+    std::unique_ptr<Impl> pimpl_;
+
+public:
+    [[nodiscard]] bool isServer() const { return mode_ == Mode::kServer; };
+    [[nodiscard]] bool isClient() const { return mode_ == Mode::kClient; };
+
+    void read_socket(void* buf, std::size_t size);
+    void write_socket(const void* buf, std::size_t size);
+
 private:
     // private data
+    bool mutually_closed_sockets_;
     int sockfd_;
     int insockfd_;
-    bool server_;
-
-    int nbytesInt_;
-    int nbytesScalar_;
-    int nbytesVector_;
-    int nbytesVector2D_;
-    int nbytesQuaternion_;
-
-    int rcvBytesPerParticle_;
-    int sndBytesPerParticle_;
-
-    std::vector<int> pushBytesPerPropList_;
-    std::vector<int> pushCumOffsetPerProperty_;
-    std::vector<int> pullBytesPerPropList_;
-    std::vector<int> pullCumOffsetPerProperty_;
-
-    std::vector<std::string> pushNameList_;
-    std::vector<std::string> pushTypeList_;
-    std::vector<std::string> pullNameList_;
-    std::vector<std::string> pullTypeList_;
+    Mode mode_;
 
     int portRangeReserved_;
 
     // private member functions
-    void error_one(const std::string msg);
-    void error_all(const std::string msg);
-    size_t readNumberFromFile(const std::string path);
-    void deleteFile(const std::string path);
-    void readPortFile(int proc, const std::string path,size_t& port,int& found,int n_tries_max=1);
-    int tryConnect(struct sockaddr_in);
+    // Member Functions
+
+    template <typename T> void write_socket(const T* const value);
+    template <typename T> void read_socket(T* const value);
+
+    void error(const std::string& msg);
+    std::size_t readNumberFromFile(const std::string& path, std::size_t max_attempts);
+    void deletePortFile() const;
+    void writePortFile(const std::string& port_file_path, std::size_t port_offset);
+    std::pair<std::size_t, bool> readPortFile(const std::string& path,
+                                              std::size_t number_of_attempts = 1);
     void selectTO(int& sock);
 
-    int waitSeconds_;
+    int wait_seconds_;
     int ntries_connect_;
 
-    const bool verbose_;
-    const bool keepPortOffsetFile_;
+    std::size_t base_port_;
+    std::size_t port_;
+    bool verbose_;
+    bool keepPortOffsetFile_;
     std::string portFileName_;
-    const size_t processNumber_;
+    std::size_t process_number_;
+    SocketStatus status_;
 
 public:
     // Constructors
 
     //- Construct from components
-    AspherixCoSimSocket
-    (
-        bool mode,
-        const size_t port_offset,
-        std::string customPortFilePath="",
-        int  waitSeconds=1,
-        int  ntries_connect_=10,
-        bool verbose=false,
-        bool keepPortOffsetFile=false
-    );
+    AspherixCoSimSocket(const Mode& mode, std::size_t process_number,
+                        const std::string& custom_port_file_path = "",
+                        std::size_t base_port = kBasePort, int wait_seconds = kWaitSeconds,
+                        std::size_t ntries_connect = kConnectionTryLimit, bool verbose = false,
+                        bool keep_port_offset_file = false);
+
+    AspherixCoSimSocket(const AspherixCoSimSocket&) = delete;
+    AspherixCoSimSocket(AspherixCoSimSocket&&) = delete;
+    AspherixCoSimSocket& operator=(const AspherixCoSimSocket&) = delete;
+    AspherixCoSimSocket& operator=(AspherixCoSimSocket&&) = delete;
 
     // Destructor
     ~AspherixCoSimSocket();
 
-    // Member Functions
-    void read_socket(void *const buf, const size_t size);
-    void write_socket(void *const buf, const size_t size);
-    void sendPushPullProperties();
-    void buildBytePattern();
-    void exchangeStatus(SocketCodes statusSend, SocketCodes statusExpect);
-    void exchangeDomain(bool active, double* limits);
-    void rcvData(size_t& dataSize, char*& data);
-    void sendData(size_t& dataSize, char*& data);
-    void closeSocket();
+    void writeString(const std::string& str);
+    std::string readString();
 
-    // Access Functions
-    inline int get_rcvBytesPerParticle(){return rcvBytesPerParticle_;}
-    inline void set_rcvBytesPerParticle(int var){rcvBytesPerParticle_=var;}
+    void writeBool(bool flag) { write_socket(&flag, sizeof(bool)); };
+    bool readBool()
+    {
+        bool flag = false;
+        read_socket(&flag, sizeof(bool));
+        return flag;
+    };
 
-    inline int get_sndBytesPerParticle(){return sndBytesPerParticle_;}
-    inline void set_sndBytesPerParticle(int var){sndBytesPerParticle_=var;}
+    template <typename T>
+    auto writeValue(const T& object) ->
+        typename std::enable_if<!std::is_trivially_copyable<T>::value, int>::type;
 
-    inline std::vector<int> get_pushBytesPerPropList(){return pushBytesPerPropList_;}
-    inline void set_pushBytesPerPropList(std::vector<int> var){pushBytesPerPropList_=var;}
+    template <typename T>
+    auto writeValue(const T& object) ->
+        typename std::enable_if<std::is_trivially_copyable<T>::value, int>::type;
 
-    inline std::vector<int> get_pushCumOffsetPerProperty(){return pushCumOffsetPerProperty_;}
-    inline void set_pushCumOffsetPerProperty(std::vector<int> var){pushCumOffsetPerProperty_=var;}
+    template <typename T>
+    auto readValue(std::size_t size = sizeof(T)) ->
+        typename std::enable_if<!std::is_trivially_copyable<T>::value, T>::type;
 
-    inline std::vector<int> get_pullBytesPerPropList(){return pullBytesPerPropList_;}
-    inline void set_pullBytesPerPropList(std::vector<int> var){pullBytesPerPropList_=var;}
+    template <typename T>
+    auto readValue(std::size_t size = sizeof(T)) ->
+        typename std::enable_if<std::is_trivially_copyable<T>::value, T>::type;
 
-    inline std::vector<int> get_pullCumOffsetPerProperty(){return pullCumOffsetPerProperty_;}
-    inline void set_pullCumOffsetPerProperty(std::vector<int> var){pullCumOffsetPerProperty_=var;}
+    template <typename T>
+    int exchangeValue(T& object, SyncDirection direction, std::size_t size = sizeof(T));
 
-    inline std::vector<std::string> get_pushNameList(){return pushNameList_;}
-    inline void set_pushNameList(std::vector<std::string> var){pushNameList_=var;}
-    inline void pushBack_pushNameList(std::string var){pushNameList_.push_back(var);}
+    // Primary template for exchangeValue (not defined)
+    template <SyncDirection D, typename T, typename = void> struct exchangeValueImpl;
 
-    inline std::vector<std::string> get_pushTypeList(){return pushTypeList_;}
-    inline void set_pushTypeList(std::vector<std::string> var){pushTypeList_=var;}
-    inline void pushBack_pushTypeList(std::string var){pushTypeList_.push_back(var);}
+    // Public interface to exchangeValue
+    template <SyncDirection D, typename T>
+    typename std::enable_if<D == SyncDirection::kSend, void>::type exchangeValue(const T& object);
 
-    inline std::vector<std::string> get_pullNameList(){return pullNameList_;}
-    inline void set_pullNameList(std::vector<std::string> var){pullNameList_=var;}
-    inline void pushBack_pullNameList(std::string var){pullNameList_.push_back(var);}
+    template <SyncDirection D, typename T>
+    typename std::enable_if<D == SyncDirection::kRecv, void>::type exchangeValue(T& object);
 
-    inline std::vector<std::string> get_pullTypeList(){return pullTypeList_;}
-    inline void set_pullTypeList(std::vector<std::string> var){pullTypeList_=var;}
-    inline void pushBack_pullTypeList(std::string var){pullTypeList_.push_back(var);}
-    
-    void printTime();
+    SocketCodes exchangeStatus(SocketCodes status_send = SocketCodes::kPing,
+                               SocketCodes status_expect = SocketCodes::kUndefined);
+
+    template <typename T> std::vector<T> readData();
+    template <typename T> void readData(std::vector<T>& buffer);
+    template <typename T> void writeData(const std::vector<T>& data);
+
+    void writeData(std::size_t size, char* const& data);
+    void writeData(std::size_t size, double* const& data);
+    void writeData(std::size_t size, int* const& data);
+    void writeData(std::size_t size, std::size_t* const& data);
+
+    void closeSocket(bool mutual = true);
+
+    [[nodiscard]] bool hasOpenSocket() const { return (insockfd_ > 0 || sockfd_ > 0); };
+
+    [[nodiscard]] auto getBasePort() const noexcept { return base_port_; }
+
+    void printTime() const;
+
+    void showBufferSizeInfo();
 };
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "aspherix_cosim_socket_I.h"
+
+} // namespace CoSimSocket
 
 #endif
 #endif
