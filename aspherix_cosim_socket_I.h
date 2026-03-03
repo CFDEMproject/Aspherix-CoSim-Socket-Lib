@@ -29,12 +29,12 @@ SourceFiles
 
 template <typename T> void AspherixCoSimSocket::read_socket(T* const value)
 {
-    read_socket(static_cast<void* const>(value), sizeof(T));
+    read_socket(static_cast<void*>(value), sizeof(T));
 }
 
 template <typename T> void AspherixCoSimSocket::write_socket(const T* const value)
 {
-    write_socket(static_cast<const void* const>(value), sizeof(T));
+    write_socket(static_cast<const void*>(value), sizeof(T));
 }
 
 template <typename T> std::vector<T> AspherixCoSimSocket::readData()
