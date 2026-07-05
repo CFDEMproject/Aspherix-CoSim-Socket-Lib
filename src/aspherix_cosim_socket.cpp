@@ -10,7 +10,7 @@
 #include <string>
 #ifndef _WIN32
 
-#include "aspherix_cosim_socket.h"
+#include "aspherix_cosim_socket/aspherix_cosim_socket.h"
 
 #include <arpa/inet.h>
 #include <cassert>

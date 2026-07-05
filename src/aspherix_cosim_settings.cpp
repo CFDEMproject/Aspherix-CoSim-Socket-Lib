@@ -1,7 +1,7 @@
-#include "aspherix_cosim_interface.h"
+#include "aspherix_cosim_socket/aspherix_cosim_interface.h"
 #ifndef _WIN32
 
-#include "aspherix_cosim_settings.h"
+#include "aspherix_cosim_socket/aspherix_cosim_settings.h"
 
 #include <array>
 #include <cassert>
